@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `business_alignments_business_id_unique` ON `business_alignments` (`business_id`);

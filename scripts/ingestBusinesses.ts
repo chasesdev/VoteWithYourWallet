@@ -1,4 +1,20 @@
+#!/usr/bin/env node
+
+/**
+ * Business Data Ingestion Script
+ * 
+ * This script tests the data ingestion service by importing Orange County businesses.
+ * It demonstrates how the ingestion pipeline works and validates that all services
+ * are functioning correctly.
+ */
+
+// Load environment variables
+import 'dotenv/config';
+
 import { dataIngestionService } from '../services/dataIngestion';
+import { getDB } from '../db/connection';
+import { businesses } from '../db/schema';
+import { eq, and, or, ilike, desc, sql } from 'drizzle-orm';
 
 async function main() {
   console.log('Starting business data ingestion test...');

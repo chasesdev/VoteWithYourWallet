@@ -118,7 +118,7 @@ export const userAlignments = sqliteTable('user_alignments', {
 
 export const businessAlignments = sqliteTable('business_alignments', {
   id: integer('id').primaryKey(),
-  businessId: integer('business_id').notNull().references(() => businesses.id),
+  businessId: integer('business_id').notNull().unique().references(() => businesses.id),
   liberal: real('liberal').default(0).notNull(),
   conservative: real('conservative').default(0).notNull(),
   libertarian: real('libertarian').default(0).notNull(),

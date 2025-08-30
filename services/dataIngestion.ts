@@ -1,6 +1,6 @@
 import { getDB } from '../db/connection';
 import { businesses, businessCategories, businessTags, businessTagRelations, businessMedia, businessAlignments, donations, dataSources, syncLogs } from '../db/schema';
-import { eq, and, or, ilike, desc, sql } from 'drizzle-orm';
+import { eq, and, or, ilike, desc, sql, like } from 'drizzle-orm';
 
 // Types for business data
 interface BusinessData {
@@ -623,8 +623,8 @@ class DataIngestionService {
         .from(businesses)
         .where(
           and(
-            ilike(businesses.name, business.name),
-            ilike(businesses.city, business.city || '')
+            like(businesses.name, business.name),
+            like(businesses.city, business.city || '')
           )
         )
         .limit(1);
@@ -669,8 +669,8 @@ class DataIngestionService {
           businessSize: business.businessSize || null,
           imageUrl: business.imageUrl || null,
           logoUrl: business.logoUrl || null,
-          socialMedia: business.socialMedia || {},
-          attributes: business.attributes || {},
+          socialMedia: business.socialMedia ? JSON.stringify(business.socialMedia) : '{}',
+          attributes: business.attributes ? JSON.stringify(business.attributes) : '{}',
           dataQuality: business.dataQuality || 1,
           updatedAt: new Date()
         };
@@ -705,8 +705,8 @@ class DataIngestionService {
           businessSize: business.businessSize || null,
           imageUrl: business.imageUrl || null,
           logoUrl: business.logoUrl || null,
-          socialMedia: business.socialMedia || {},
-          attributes: business.attributes || {},
+          socialMedia: business.socialMedia ? JSON.stringify(business.socialMedia) : '{}',
+          attributes: business.attributes ? JSON.stringify(business.attributes) : '{}',
           dataQuality: business.dataQuality || 1,
           createdAt: new Date(),
           updatedAt: new Date()

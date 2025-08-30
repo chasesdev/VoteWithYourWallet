@@ -1,5 +1,5 @@
 import { getDB } from '../db/connection';
-import { businesses, businessCategories, businessTags, businessTagRelations, businessAttributes } from '../db/schema';
+import { businesses, businessCategories, businessTags, businessTagRelations } from '../db/schema';
 import { eq, and, or, ilike, desc, sql, inArray } from 'drizzle-orm';
 
 // Types for categorization
@@ -7,7 +7,6 @@ interface Category {
   id: number;
   name: string;
   description?: string;
-  parentCategoryId?: number;
   icon?: string;
   color?: string;
   isActive: boolean;
@@ -282,19 +281,37 @@ class CategorizationService {
 
   // Initialize categories and tags
   async initializeCategoriesAndTags(): Promise<boolean> {
-    if (!this.db) return false;
+    if (!this.db) {
+      console.error('Database connection not available');
+      return false;
+    }
 
     try {
+      console.log('Starting to initialize categories and tags...');
+      
       // Insert predefined categories
+      console.log(`Inserting ${PREDEFINED_CATEGORIES.length} predefined categories...`);
       for (const categoryData of PREDEFINED_CATEGORIES) {
-        await this.db.insert(businessCategories).values(categoryData).onConflictDoNothing();
+        try {
+          await this.db.insert(businessCategories).values(categoryData).onConflictDoNothing();
+        } catch (error) {
+          console.error(`Error inserting category ${categoryData.name}:`, error);
+        }
       }
+      console.log('Categories inserted successfully');
 
       // Insert predefined tags
+      console.log(`Inserting ${PREDEFINED_TAGS.length} predefined tags...`);
       for (const tagData of PREDEFINED_TAGS) {
-        await this.db.insert(businessTags).values(tagData).onConflictDoNothing();
+        try {
+          await this.db.insert(businessTags).values(tagData).onConflictDoNothing();
+        } catch (error) {
+          console.error(`Error inserting tag ${tagData.name}:`, error);
+        }
       }
+      console.log('Tags inserted successfully');
 
+      console.log('Categories and tags initialization completed');
       return true;
     } catch (error) {
       console.error('Error initializing categories and tags:', error);
@@ -536,70 +553,33 @@ class CategorizationService {
     if (!this.db) return false;
 
     try {
-      // Save primary category
-      if (categorization.primaryCategory.id > 0) {
-        await this.db.insert(businessCategories).values({
-          businessId,
-          categoryId: categorization.primaryCategory.id,
-          isPrimary: true,
-          confidence: categorization.confidence
-        }).onConflictDoUpdate({
-          target: [businessCategories.businessId, businessCategories.categoryId],
-          set: {
-            isPrimary: true,
-            confidence: categorization.confidence
-          }
-        });
-      }
-
-      // Save secondary categories
-      for (const category of categorization.secondaryCategories) {
-        await this.db.insert(businessCategories).values({
-          businessId,
-          categoryId: category.id,
-          isPrimary: false,
-          confidence: categorization.confidence * 0.8
-        }).onConflictDoUpdate({
-          target: [businessCategories.businessId, businessCategories.categoryId],
-          set: {
-            isPrimary: false,
-            confidence: categorization.confidence * 0.8
-          }
-        });
-      }
+      // Update business category field with primary category
+      await this.db
+        .update(businesses)
+        .set({ 
+          category: categorization.primaryCategory.name,
+          updatedAt: new Date()
+        })
+        .where(eq(businesses.id, businessId));
 
       // Save tags
       for (const tag of categorization.tags) {
         await this.db.insert(businessTagRelations).values({
           businessId,
-          tagId: tag.id,
-          relevance: 0.8,
-          source: 'auto'
-        }).onConflictDoUpdate({
-          target: [businessTagRelations.businessId, businessTagRelations.tagId],
-          set: {
-            relevance: 0.8,
-            source: 'auto'
-          }
-        });
+          tagId: tag.id
+        }).onConflictDoNothing();
       }
 
-      // Save attributes
-      for (const attribute of categorization.attributes) {
-        await this.db.insert(businessAttributes).values({
-          businessId,
-          key: attribute.key,
-          value: attribute.value,
-          type: attribute.type,
-          description: attribute.description
-        }).onConflictDoUpdate({
-          target: [businessAttributes.businessId, businessAttributes.key],
-          set: {
-            value: attribute.value,
-            type: attribute.type,
-            description: attribute.description
-          }
-        });
+      // Save attributes as JSON in the business record
+      if (categorization.attributes.length > 0) {
+        const attributesJson = JSON.stringify(categorization.attributes);
+        await this.db
+          .update(businesses)
+          .set({ 
+            attributes: attributesJson,
+            updatedAt: new Date()
+          })
+          .where(eq(businesses.id, businessId));
       }
 
       return true;
@@ -614,39 +594,32 @@ class CategorizationService {
     if (!this.db) return { secondary: [] };
 
     try {
-      const result = await this.db
-        .select({
-          categoryId: businessCategories.categoryId,
-          isPrimary: businessCategories.isPrimary,
-          confidence: businessCategories.confidence,
-          categoryName: businessCategories.name,
-          categoryDescription: businessCategories.description,
-          categoryIcon: businessCategories.icon,
-          categoryColor: businessCategories.color
-        })
-        .from(businessCategories)
-        .where(eq(businessCategories.businessId, businessId));
+      // Get business record to extract category
+      const business = await this.db
+        .select()
+        .from(businesses)
+        .where(eq(businesses.id, businessId))
+        .limit(1);
 
-      const primary = result.find(item => item.isPrimary);
-      const secondary = result.filter(item => !item.isPrimary);
+      if (business.length === 0) return { secondary: [] };
 
+      // Get all categories
+      const allCategories = await this.db.select().from(businessCategories).where(eq(businessCategories.isActive, true));
+      
+      // Find primary category
+      const primaryCategory = allCategories.find((cat: any) => cat.name === business[0].category);
+      
+      // For now, return empty secondary categories since we don't have a junction table
       return {
-        primary: primary ? {
-          id: primary.categoryId,
-          name: primary.categoryName,
-          description: primary.categoryDescription,
-          icon: primary.categoryIcon,
-          color: primary.categoryColor,
+        primary: primaryCategory ? {
+          id: primaryCategory.id,
+          name: primaryCategory.name,
+          description: primaryCategory.description,
+          icon: primaryCategory.icon,
+          color: primaryCategory.color,
           isActive: true
         } : undefined,
-        secondary: secondary.map(item => ({
-          id: item.categoryId,
-          name: item.categoryName,
-          description: item.categoryDescription,
-          icon: item.categoryIcon,
-          color: item.categoryColor,
-          isActive: true
-        }))
+        secondary: []
       };
     } catch (error) {
       console.error('Error getting business categories:', error);
@@ -661,18 +634,16 @@ class CategorizationService {
     try {
       const result = await this.db
         .select({
-          tagId: businessTagRelations.tagId,
+          tagId: businessTags.id,
           tagName: businessTags.name,
           tagDescription: businessTags.description,
-          tagCategory: businessTags.category,
-          relevance: businessTagRelations.relevance,
-          source: businessTagRelations.source
+          tagCategory: businessTags.category
         })
         .from(businessTagRelations)
         .innerJoin(businessTags, eq(businessTagRelations.tagId, businessTags.id))
         .where(eq(businessTagRelations.businessId, businessId));
 
-      return result.map(item => ({
+      return result.map((item: any) => ({
         id: item.tagId,
         name: item.tagName,
         description: item.tagDescription,
@@ -691,16 +662,18 @@ class CategorizationService {
 
     try {
       const result = await this.db
-        .select()
-        .from(businessAttributes)
-        .where(eq(businessAttributes.businessId, businessId));
+        .select({ attributes: businesses.attributes })
+        .from(businesses)
+        .where(eq(businesses.id, businessId))
+        .limit(1);
 
-      return result.map(item => ({
-        key: item.key,
-        value: item.value,
-        type: item.type,
-        description: item.description
-      }));
+      if (result.length === 0 || !result[0].attributes) return [];
+
+      try {
+        return JSON.parse(result[0].attributes);
+      } catch {
+        return [];
+      }
     } catch (error) {
       console.error('Error getting business attributes:', error);
       return [];
@@ -708,10 +681,42 @@ class CategorizationService {
   }
 
   // Search businesses by category
-  async searchByCategory(categoryId: number, limit: number = 20, offset: number = 0): Promise<any[]> {
+  async searchByCategory(categoryName: string, limit: number = 20, offset: number = 0): Promise<any[]> {
     if (!this.db) return [];
 
     try {
+      const result = await this.db
+        .select()
+        .from(businesses)
+        .where(and(
+          eq(businesses.category, categoryName),
+          eq(businesses.isActive, true)
+        ))
+        .limit(limit)
+        .offset(offset);
+
+      return result;
+    } catch (error) {
+      console.error('Error searching by category:', error);
+      return [];
+    }
+  }
+
+  // Search businesses by tags
+  async searchByTags(tagNames: string[], limit: number = 20, offset: number = 0): Promise<any[]> {
+    if (!this.db) return [];
+
+    try {
+      // Get tag IDs from tag names
+      const tags = await this.db
+        .select({ id: businessTags.id, name: businessTags.name })
+        .from(businessTags)
+        .where(inArray(businessTags.name, tagNames));
+
+      const tagIds = tags.map((tag: any) => tag.id);
+
+      if (tagIds.length === 0) return [];
+
       const result = await this.db
         .select({
           businessId: businesses.id,
@@ -727,43 +732,6 @@ class CategorizationService {
           businessPhone: businesses.phone,
           businessImageUrl: businesses.imageUrl
         })
-        .from(businessCategories)
-        .innerJoin(businesses, eq(businessCategories.businessId, businesses.id))
-        .where(and(
-          eq(businessCategories.categoryId, categoryId),
-          eq(businesses.isActive, true)
-        ))
-        .limit(limit)
-        .offset(offset);
-
-      return result;
-    } catch (error) {
-      console.error('Error searching by category:', error);
-      return [];
-    }
-  }
-
-  // Search businesses by tags
-  async searchByTags(tagIds: number[], limit: number = 20, offset: number = 0): Promise<any[]> {
-    if (!this.db) return [];
-
-    try {
-      const result = await this.db
-        .select({
-          businessId: businesses.id,
-          businessName: businesses.name,
-          businessDescription: businesses.description,
-          businessCategory: businesses.category,
-          businessAddress: businesses.address,
-          businessCity: businesses.city,
-          businessState: businesses.state,
-          businessLatitude: businesses.latitude,
-          businessLongitude: businesses.longitude,
-          businessWebsite: businesses.website,
-          businessPhone: businesses.phone,
-          businessImageUrl: businesses.imageUrl,
-          matchCount: sql`count(*)`.as('match_count')
-        })
         .from(businessTagRelations)
         .innerJoin(businesses, eq(businessTagRelations.businessId, businesses.id))
         .where(and(
@@ -771,7 +739,6 @@ class CategorizationService {
           eq(businesses.isActive, true)
         ))
         .groupBy(businesses.id)
-        .orderBy(desc(sql`count(*)`))
         .limit(limit)
         .offset(offset);
 
@@ -791,24 +758,32 @@ class CategorizationService {
       const cached = this.getCache(cacheKey);
       if (cached) return cached;
 
-      const result = await this.db
-        .select({
-          id: businessCategories.id,
-          name: businessCategories.name,
-          description: businessCategories.description,
-          icon: businessCategories.icon,
-          color: businessCategories.color,
-          isActive: businessCategories.isActive,
-          businessCount: sql`count(DISTINCT ${businessCategories.businessId})`.as('business_count')
+      // Get all categories
+      const categories = await this.db.select().from(businessCategories).where(eq(businessCategories.isActive, true));
+      
+      // Count businesses for each category
+      const categoriesWithCounts = await Promise.all(
+        categories.map(async (category: any) => {
+          const countResult = await this.db
+            .select({ count: sql`count(*)` })
+            .from(businesses)
+            .where(and(
+              eq(businesses.category, category.name),
+              eq(businesses.isActive, true)
+            ));
+          
+          return {
+            ...category,
+            businessCount: countResult[0].count
+          };
         })
-        .from(businessCategories)
-        .innerJoin(businesses, eq(businessCategories.businessId, businesses.id))
-        .where(eq(businessCategories.isActive, true))
-        .groupBy(businessCategories.id)
-        .orderBy(desc(sql`count(DISTINCT ${businessCategories.businessId})`));
+      );
 
-      this.setCache(cacheKey, result);
-      return result;
+      // Sort by business count
+      categoriesWithCounts.sort((a, b) => (b.businessCount || 0) - (a.businessCount || 0));
+
+      this.setCache(cacheKey, categoriesWithCounts);
+      return categoriesWithCounts;
     } catch (error) {
       console.error('Error getting all categories:', error);
       return [];
@@ -890,8 +865,12 @@ class CategorizationService {
       
       const totalBusinesses = await this.db.select({ count: sql`count(*)` }).from(businesses).where(eq(businesses.isActive, true));
       const businessesWithCategories = await this.db
-        .select({ count: sql`count(DISTINCT businessId)` })
-        .from(businessCategories);
+        .select({ count: sql`count(DISTINCT id)` })
+        .from(businesses)
+        .where(and(
+          sql`category IS NOT NULL`,
+          eq(businesses.isActive, true)
+        ));
       const businessesWithTags = await this.db
         .select({ count: sql`count(DISTINCT businessId)` })
         .from(businessTagRelations);
