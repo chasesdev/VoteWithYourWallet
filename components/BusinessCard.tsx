@@ -83,16 +83,23 @@ export default function BusinessCard({
   };
   
   const getBusinessLogo = () => {
-    // In production, these would be real business logos
-    const logoUrls: Record<string, string> = {
-      'Patagonia': 'https://logos-world.net/wp-content/uploads/2020/04/Patagonia-Logo.png',
-      'Chick-fil-A': 'https://logos-world.net/wp-content/uploads/2020/04/Chick-fil-A-Logo.png',
-      'Ben & Jerry\'s': 'https://logos-world.net/wp-content/uploads/2020/04/Ben-Jerrys-Logo.png',
-      'Tesla': 'https://logos-world.net/wp-content/uploads/2020/04/Tesla-Logo.png',
-      'Walmart': 'https://logos-world.net/wp-content/uploads/2020/04/Walmart-Logo.png',
+    // Use local assets for better performance and offline availability
+    const localLogos: Record<string, any> = {
+      'Patagonia': require('../assets/images/businesses/patagonia.png'),
+      'Chick-fil-A': require('../assets/images/businesses/chick-fil-a.png'),
+      'Ben & Jerry\'s': require('../assets/images/businesses/ben-jerrys.png'),
+      'Tesla': require('../assets/images/businesses/tesla.png'),
+      'Walmart': require('../assets/images/businesses/walmart.png'),
     };
     
-    return logoUrls[business.name] || business.imageUrl || 'https://via.placeholder.com/120x80/f3f4f6/9ca3af?text=' + business.name.charAt(0);
+    // Return local asset or fallback to remote URL or placeholder
+    return localLogos[business.name] || business.imageUrl || 'https://via.placeholder.com/120x80/f3f4f6/9ca3af?text=' + business.name.charAt(0);
+  };
+
+  const getImageSource = () => {
+    const logo = getBusinessLogo();
+    // If it's a local asset (object), return it directly; if it's a URL string, wrap in { uri: }
+    return typeof logo === 'string' ? { uri: logo } : logo;
   };
   
   const alignmentPercentage = getAlignmentPercentage();
@@ -109,7 +116,7 @@ export default function BusinessCard({
           <View style={compactHeaderStyle}>
             <View style={compactBusinessInfoStyle}>
               <Image 
-                source={{ uri: getBusinessLogo() }}
+                source={getImageSource()}
                 style={compactLogoStyle}
                 resizeMode="contain"
               />
@@ -150,7 +157,7 @@ export default function BusinessCard({
       >
         <View style={featuredImageContainerStyle}>
           <Image 
-            source={{ uri: getBusinessLogo() }}
+            source={getImageSource()}
             style={featuredImageStyle}
             resizeMode="cover"
           />
@@ -219,7 +226,7 @@ export default function BusinessCard({
       <View style={defaultContentStyle}>
         <View style={defaultHeaderStyle}>
           <Image 
-            source={{ uri: getBusinessLogo() }}
+            source={getImageSource()}
             style={defaultLogoStyle}
             resizeMode="contain"
           />
