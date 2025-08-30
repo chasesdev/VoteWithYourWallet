@@ -21,18 +21,33 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.votewithyourwallet.app"
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "name": "VoteWithYourWallet",
+      "shortName": "VoteWithYourWallet",
+      "lang": "en",
+      "scope": "/",
+      "themeColor": "#f4511e",
+      "backgroundColor": "#ffffff",
+      "display": "standalone",
+      "icon": "./assets/images/icon.png",
+      "orientation": "portrait-primary"
     },
     "plugins": [
       "expo-router"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "votewithyourwallet-project"
+      }
     }
   }
 }
