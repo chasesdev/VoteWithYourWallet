@@ -5,7 +5,7 @@ import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 // import { LinearGradient } from 'expo-linear-gradient';
 import BusinessCard from '../components/BusinessCard';
-import BusinessMap from '../components/BusinessMap';
+import BusinessMapUnified from '../components/BusinessMapUnified';
 import SearchBar from '../components/SearchBar';
 import FilterSection from '../components/FilterSection';
 import Button from '../components/ui/Button';
@@ -554,7 +554,7 @@ export default function HomeScreen() {
         />
       ) : (
         <View style={mapContainerStyle}>
-          <BusinessMap
+          <BusinessMapUnified
             businesses={filteredBusinesses}
             userLocation={userLocation}
             selectedBusiness={selectedBusiness}
