@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 // import { LinearGradient } from 'expo-linear-gradient';
 import BusinessCard from '../components/BusinessCard';
+import BusinessMap from '../components/BusinessMap';
 import SearchBar from '../components/SearchBar';
 import FilterSection from '../components/FilterSection';
 import Button from '../components/ui/Button';
@@ -59,10 +61,14 @@ export default function HomeScreen() {
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const [showHero, setShowHero] = useState(true);
   const [hasUserAlignment, setHasUserAlignment] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
 
   useEffect(() => {
     fetchBusinessesData();
     loadUserAlignment();
+    getUserLocation();
     
     // Check if user needs onboarding
     const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding');
@@ -238,6 +244,24 @@ export default function HomeScreen() {
     setSortBy(sort);
   };
 
+  const getUserLocation = async () => {
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.log('Permission to access location was denied');
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync({});
+      setUserLocation({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+    } catch (error) {
+      console.error('Error getting user location:', error);
+    }
+  };
+
   const renderHeroSection = () => {
     if (!showHero) return null;
     
@@ -369,6 +393,38 @@ export default function HomeScreen() {
         setSearchQuery={handleSearchChange} 
       />
 
+      {/* View Toggle */}
+      <View style={viewToggleContainerStyle}>
+        <View style={viewToggleStyle}>
+          <TouchableOpacity
+            style={[viewToggleButtonStyle, viewMode === 'list' && viewToggleButtonActiveStyle]}
+            onPress={() => setViewMode('list')}
+          >
+            <Ionicons 
+              name="list" 
+              size={20} 
+              color={viewMode === 'list' ? Colors.white : Colors.gray[600]} 
+            />
+            <Text style={[viewToggleTextStyle, viewMode === 'list' && viewToggleTextActiveStyle]}>
+              List
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[viewToggleButtonStyle, viewMode === 'map' && viewToggleButtonActiveStyle]}
+            onPress={() => setViewMode('map')}
+          >
+            <Ionicons 
+              name="map" 
+              size={20} 
+              color={viewMode === 'map' ? Colors.white : Colors.gray[600]} 
+            />
+            <Text style={[viewToggleTextStyle, viewMode === 'map' && viewToggleTextActiveStyle]}>
+              Map
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <FilterSection 
         categories={categories}
         selectedCategory={selectedCategory}
@@ -446,55 +502,71 @@ export default function HomeScreen() {
         )}
       </View>
 
-      {/* Business List */}
-      <FlatList
-        data={filteredBusinesses}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <BusinessCard 
-            business={item}
+      {/* Business List or Map View */}
+      {viewMode === 'list' ? (
+        <FlatList
+          data={filteredBusinesses}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <BusinessCard 
+              business={item}
+              userAlignment={hasUserAlignment ? userAlignment : undefined}
+              onPress={() => handleBusinessPress(item)}
+              variant="default"
+            />
+          )}
+          ListEmptyComponent={
+            <Card style={emptyContainerStyle}>
+              <View style={emptyContentStyle}>
+                <Ionicons name="search" size={64} color={Colors.gray[300]} />
+                <Text style={emptyTitleStyle}>
+                  {searchQuery || selectedCategory !== 'All' 
+                    ? "No businesses match your filters" 
+                    : "No businesses available"}
+                </Text>
+                <Text style={emptyDescriptionStyle}>
+                  {searchQuery || selectedCategory !== 'All' 
+                    ? "Try adjusting your search terms or filters" 
+                    : "We're working on adding more businesses to the platform"}
+                </Text>
+                {(searchQuery || selectedCategory !== 'All') && (
+                  <Button
+                    variant="primary"
+                    onPress={() => {
+                      setSearchQuery('');
+                      setSelectedCategory('All');
+                    }}
+                    style={{ marginTop: Spacing[4] }}
+                  >
+                    Clear Filters
+                  </Button>
+                )}
+              </View>
+            </Card>
+          }
+          contentContainerStyle={listContainerStyle}
+          showsVerticalScrollIndicator={false}
+          onEndReachedThreshold={0.5}
+          onEndReached={() => {
+            // Load more results when reaching the end
+            // In a real app, this would trigger pagination
+          }}
+        />
+      ) : (
+        <View style={mapContainerStyle}>
+          <BusinessMap
+            businesses={filteredBusinesses}
+            userLocation={userLocation}
+            selectedBusiness={selectedBusiness}
+            onBusinessSelect={(business) => {
+              setSelectedBusiness(business);
+              handleBusinessPress(business);
+            }}
+            onMapPress={() => setSelectedBusiness(null)}
             userAlignment={hasUserAlignment ? userAlignment : undefined}
-            onPress={() => handleBusinessPress(item)}
-            variant="default"
           />
-        )}
-        ListEmptyComponent={
-          <Card style={emptyContainerStyle}>
-            <View style={emptyContentStyle}>
-              <Ionicons name="search" size={64} color={Colors.gray[300]} />
-              <Text style={emptyTitleStyle}>
-                {searchQuery || selectedCategory !== 'All' 
-                  ? "No businesses match your filters" 
-                  : "No businesses available"}
-              </Text>
-              <Text style={emptyDescriptionStyle}>
-                {searchQuery || selectedCategory !== 'All' 
-                  ? "Try adjusting your search terms or filters" 
-                  : "We're working on adding more businesses to the platform"}
-              </Text>
-              {(searchQuery || selectedCategory !== 'All') && (
-                <Button
-                  variant="primary"
-                  onPress={() => {
-                    setSearchQuery('');
-                    setSelectedCategory('All');
-                  }}
-                  style={{ marginTop: Spacing[4] }}
-                >
-                  Clear Filters
-                </Button>
-              )}
-            </View>
-          </Card>
-        }
-        contentContainerStyle={listContainerStyle}
-        showsVerticalScrollIndicator={false}
-        onEndReachedThreshold={0.5}
-        onEndReached={() => {
-          // Load more results when reaching the end
-          // In a real app, this would trigger pagination
-        }}
-      />
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -828,4 +900,56 @@ const emptyDescriptionStyle = {
 // List Container Style
 const listContainerStyle = {
   paddingBottom: Spacing[8],
+};
+
+// View Toggle Styles
+const viewToggleContainerStyle = {
+  paddingHorizontal: Spacing[6],
+  paddingVertical: Spacing[3],
+};
+
+const viewToggleStyle = {
+  backgroundColor: Colors.gray[100],
+  borderRadius: 12,
+  padding: Spacing[1],
+  flexDirection: 'row' as const,
+};
+
+const viewToggleButtonStyle = {
+  flex: 1,
+  flexDirection: 'row' as const,
+  alignItems: 'center' as const,
+  justifyContent: 'center' as const,
+  paddingVertical: Spacing[3],
+  paddingHorizontal: Spacing[4],
+  borderRadius: 10,
+  gap: Spacing[2],
+};
+
+const viewToggleButtonActiveStyle = {
+  backgroundColor: Colors.primary[600],
+  shadowColor: Colors.primary[600],
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.2,
+  shadowRadius: 4,
+  elevation: 3,
+};
+
+const viewToggleTextStyle = {
+  ...StyleMixins.bodySmall,
+  fontWeight: '500' as const,
+  color: Colors.gray[600],
+};
+
+const viewToggleTextActiveStyle = {
+  color: Colors.white,
+};
+
+// Map Container Style
+const mapContainerStyle = {
+  height: 500,
+  marginHorizontal: Spacing[6],
+  marginVertical: Spacing[4],
+  borderRadius: 12,
+  overflow: 'hidden' as const,
 };
