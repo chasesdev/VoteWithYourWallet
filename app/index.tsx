@@ -797,7 +797,7 @@ const heroButtonStyle = {
 const featuredSectionStyle = {
   padding: Spacing[6],
   backgroundColor: Colors.white,
-  marginBottom: Spacing[2],
+  marginBottom: Spacing[6],
 };
 
 const featuredSectionTitleStyle = {
@@ -820,6 +820,7 @@ const featuredScrollContainerStyle = {
 // Alignment Prompt Styles
 const alignmentPromptStyle = {
   margin: Spacing[4],
+  marginTop: Spacing[6],
   padding: Spacing[6],
 };
 
