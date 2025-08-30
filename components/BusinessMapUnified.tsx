@@ -227,11 +227,6 @@ export default function BusinessMapUnified({
     );
   }
 
-  // Debug logging to see what's happening
-  console.log('Platform.OS:', Platform.OS);
-  console.log('Map available:', !!Map);
-  console.log('isMapAvailable:', isMapAvailable);
-  console.log('MAPBOX_TOKEN available:', !!MAPBOX_TOKEN && MAPBOX_TOKEN !== 'pk.demo.placeholder');
 
   // Mobile fallback - show business list with instructions  
   if (Platform.OS !== 'web' || !isMapAvailable) {

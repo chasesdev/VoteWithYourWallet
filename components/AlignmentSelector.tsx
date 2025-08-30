@@ -455,7 +455,6 @@ export default function AlignmentSelector({
                       })()
                     : customAlignment
                 }
-                onPress={() => {}}
                 variant="compact"
               />
             ))}

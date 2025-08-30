@@ -118,14 +118,12 @@ export default function HomeScreen() {
         setBusinesses(businessesData);
       } else {
         setError(response.error || 'Failed to fetch businesses');
-        // Use sample data as fallback
-        setBusinesses(getSampleBusinesses());
+        setBusinesses([]);
       }
     } catch (err) {
       console.error('Error fetching businesses:', err);
       setError('Network error occurred');
-      // Use sample data as fallback
-      setBusinesses(getSampleBusinesses());
+      setBusinesses([]);
     } finally {
       setLoading(false);
     }
@@ -625,71 +623,6 @@ export default function HomeScreen() {
   );
 }
 
-// Sample data for testing
-function getSampleBusinesses(): Business[] {
-  return [
-    {
-      id: 1,
-      name: "EcoFriendly Store",
-      description: "Sustainable products for environmentally conscious consumers",
-      category: "Retail",
-      address: "123 Green St, Eco City",
-      imageUrl: "https://via.placeholder.com/100",
-      alignment: {
-        liberal: 0.9,
-        conservative: 0.1,
-        libertarian: 0.3,
-        green: 0.95,
-        centrist: 0.5,
-      },
-    },
-    {
-      id: 2,
-      name: "American Made Co.",
-      description: "Proudly manufacturing products in the USA since 1950",
-      category: "Manufacturing",
-      address: "456 Factory Ave, Industry Town",
-      imageUrl: "https://via.placeholder.com/100",
-      alignment: {
-        liberal: 0.2,
-        conservative: 0.9,
-        libertarian: 0.7,
-        green: 0.1,
-        centrist: 0.4,
-      },
-    },
-    {
-      id: 3,
-      name: "Green Energy Solutions",
-      description: "Renewable energy products and services for homes and businesses",
-      category: "Energy",
-      address: "789 Solar Ave, Clean City",
-      imageUrl: "https://via.placeholder.com/100",
-      alignment: {
-        liberal: 0.8,
-        conservative: 0.2,
-        libertarian: 0.4,
-        green: 0.9,
-        centrist: 0.6,
-      },
-    },
-    {
-      id: 4,
-      name: "Traditional Values Market",
-      description: "Family-owned business focusing on traditional American values",
-      category: "Retail",
-      address: "321 Heritage St, Traditional Town",
-      imageUrl: "https://via.placeholder.com/100",
-      alignment: {
-        liberal: 0.1,
-        conservative: 0.95,
-        libertarian: 0.8,
-        green: 0.2,
-        centrist: 0.3,
-      },
-    },
-  ];
-}
 
 // Premium Style Definitions
 const containerStyle = {

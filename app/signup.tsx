@@ -235,11 +235,27 @@ export default function SignupScreen() {
             <View style={styles.termsContainer}>
               <Text style={styles.termsText}>
                 By creating an account, you agree to our{' '}
-                <TouchableOpacity onPress={() => {}}>
+                <TouchableOpacity onPress={() => {
+                  // In a real app, this would navigate to the Terms of Service page
+                  // For now, we'll show an alert with the link
+                  Alert.alert(
+                    'Terms of Service',
+                    'Our Terms of Service are available at: https://votewithyourwallet.com/terms',
+                    [{ text: 'OK' }]
+                  );
+                }}>
                   <Text style={styles.linkText}>Terms of Service</Text>
                 </TouchableOpacity>
                 {' '}and{' '}
-                <TouchableOpacity onPress={() => {}}>
+                <TouchableOpacity onPress={() => {
+                  // In a real app, this would navigate to the Privacy Policy page
+                  // For now, we'll show an alert with the link
+                  Alert.alert(
+                    'Privacy Policy', 
+                    'Our Privacy Policy is available at: https://votewithyourwallet.com/privacy',
+                    [{ text: 'OK' }]
+                  );
+                }}>
                   <Text style={styles.linkText}>Privacy Policy</Text>
                 </TouchableOpacity>
               </Text>

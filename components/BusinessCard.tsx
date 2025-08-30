@@ -122,13 +122,17 @@ export default function BusinessCard({
       return logoMap[business.name];
     }
     
-    // Fallback to placeholder
-    return 'https://via.placeholder.com/120x80/f3f4f6/9ca3af?text=' + business.name.charAt(0);
+    // Fallback to a default business icon - no external dependencies
+    return null; // Will show default icon in getImageSource
   };
 
   const getImageSource = () => {
     const logo = getBusinessLogo();
-    return { uri: logo };
+    if (logo) {
+      return { uri: logo };
+    }
+    // Fallback to the default business icon from assets
+    return require('../assets/images/icon.png');
   };
   
   const alignmentPercentage = getAlignmentPercentage();
