@@ -1,10 +1,20 @@
-import { db } from '@/db/connection';
+import { getDB } from '@/db/connection';
 import { businesses, businessAlignments, donations } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
+    const db = getDB();
+    
+    if (!db) {
+      return new Response(JSON.stringify({ error: 'Database not available' }), {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    }
 
     const [businessData, alignmentData, donationsData] = await Promise.all([
       db.select()

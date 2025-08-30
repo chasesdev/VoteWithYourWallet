@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(eas env:create:*)",
+      "Bash(npx vercel:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

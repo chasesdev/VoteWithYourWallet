@@ -1,11 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+// import { LinearGradient } from 'expo-linear-gradient';
 import BusinessCard from '../components/BusinessCard';
 import SearchBar from '../components/SearchBar';
 import FilterSection from '../components/FilterSection';
+import Button from '../components/ui/Button';
+import Badge from '../components/ui/Badge';
+import Card from '../components/ui/Card';
 import { fetchBusinesses, setUserAlignment } from '../utils/api';
+import { Colors, Typography, Spacing } from '../constants/design';
+import { StyleMixins, CommonStyles } from '../utils/styles';
 
 interface Business {
   id: number;
@@ -51,10 +57,23 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [showHero, setShowHero] = useState(true);
+  const [hasUserAlignment, setHasUserAlignment] = useState(false);
 
   useEffect(() => {
     fetchBusinessesData();
     loadUserAlignment();
+    
+    // Check if user needs onboarding
+    const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding');
+    const hasSeenApp = localStorage.getItem('hasSeenApp');
+    
+    if (!hasCompletedOnboarding && !hasSeenApp) {
+      // First time user - show onboarding
+      setTimeout(() => {
+        router.replace('/onboarding' as any);
+      }, 100);
+    }
   }, []);
 
   useEffect(() => {
@@ -106,7 +125,18 @@ export default function HomeScreen() {
     try {
       const storedAlignment = localStorage.getItem('userAlignment');
       if (storedAlignment) {
-        setUserAlignmentState(JSON.parse(storedAlignment));
+        const alignment = JSON.parse(storedAlignment);
+        setUserAlignmentState(alignment);
+        
+        // Check if user has meaningful alignment set
+        const hasAlignment = Object.values(alignment).some((value: any) => value > 0);
+        setHasUserAlignment(hasAlignment);
+        
+        // Hide hero if user has alignment and has seen the app before
+        const hasSeenApp = localStorage.getItem('hasSeenApp');
+        if (hasAlignment && hasSeenApp) {
+          setShowHero(false);
+        }
       }
     } catch (error) {
       console.error('Error loading user alignment:', error);
@@ -208,35 +238,132 @@ export default function HomeScreen() {
     setSortBy(sort);
   };
 
+  const renderHeroSection = () => {
+    if (!showHero) return null;
+    
+    return (
+      <View
+        style={[heroContainerStyle, { backgroundColor: Colors.primary[600] }]}
+      >
+        <View style={heroContentStyle}>
+          <View style={heroHeaderStyle}>
+            <Text style={heroTitleStyle}>
+              Shop Your Values.{'\n'}Vote With Your Wallet.
+            </Text>
+            <Text style={heroSubtitleStyle}>
+              Discover businesses that align with your political values and make purchases that reflect your beliefs.
+            </Text>
+          </View>
+          
+          <View style={heroStatsStyle}>
+            <View style={heroStatItemStyle}>
+              <Text style={heroStatNumberStyle}>10,000+</Text>
+              <Text style={heroStatLabelStyle}>Businesses</Text>
+            </View>
+            <View style={heroStatItemStyle}>
+              <Text style={heroStatNumberStyle}>50k+</Text>
+              <Text style={heroStatLabelStyle}>Users</Text>
+            </View>
+            <View style={heroStatItemStyle}>
+              <Text style={heroStatNumberStyle}>95%</Text>
+              <Text style={heroStatLabelStyle}>Accuracy</Text>
+            </View>
+          </View>
+          
+          <View style={heroActionsStyle}>
+            <Button
+              variant="secondary"
+              size="lg"
+              onPress={() => {
+                setShowHero(false);
+                localStorage.setItem('hasSeenApp', 'true');
+                router.push('/political-alignment');
+              }}
+              style={heroButtonStyle}
+            >
+              Set My Values
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="lg"
+              onPress={() => {
+                setShowHero(false);
+                localStorage.setItem('hasSeenApp', 'true');
+              }}
+              textStyle={{ color: Colors.white }}
+            >
+              Browse Without Setup
+            </Button>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#f4511e" />
-        <Text style={styles.loadingText}>Loading political business data...</Text>
+      <View style={loadingContainerStyle}>
+        <ActivityIndicator size="large" color={Colors.primary[600]} />
+        <Text style={loadingTextStyle}>
+          Loading political business data...
+        </Text>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle" size={64} color="#e74c3c" />
-        <Text style={styles.errorText}>{error}</Text>
-        <Text style={styles.retryText}>Retrying in 3 seconds...</Text>
+      <View style={errorContainerStyle}>
+        <Ionicons name="alert-circle" size={64} color={Colors.error[500]} />
+        <Text style={errorTextStyle}>{error}</Text>
+        <Button
+          variant="primary"
+          onPress={fetchBusinessesData}
+          style={{ marginTop: Spacing[4] }}
+        >
+          Try Again
+        </Button>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.push('/political-alignment')}>
-          <Ionicons name="settings" size={24} color="#333" />
+    <ScrollView style={containerStyle}>
+      {/* Premium Header */}
+      <View style={headerStyle}>
+        <TouchableOpacity 
+          onPress={() => router.push('/political-alignment')}
+          style={settingsButtonStyle}
+        >
+          <Ionicons name="settings" size={24} color={Colors.gray[600]} />
         </TouchableOpacity>
-        <Text style={styles.title}>VoteWithYourWallet</Text>
-        <View style={styles.placeholder} />
+        
+        <View style={logoContainerStyle}>
+          <View style={logoIconContainerStyle}>
+            <Ionicons name="wallet" size={32} color={Colors.primary[600]} />
+            <Ionicons 
+              name="checkmark-circle" 
+              size={16} 
+              color={Colors.success[500]} 
+              style={logoCheckmarkStyle} 
+            />
+          </View>
+          <Text style={titleStyle}>VoteWithYourWallet</Text>
+        </View>
+        
+        <TouchableOpacity style={notificationButtonStyle}>
+          <Ionicons name="notifications" size={24} color={Colors.gray[600]} />
+          <View style={notificationBadgeStyle}>
+            <Text style={notificationBadgeTextStyle}>3</Text>
+          </View>
+        </TouchableOpacity>
       </View>
 
+      {/* Hero Section */}
+      {renderHeroSection()}
+
+      {/* Search & Filters */}
       <SearchBar 
         searchQuery={searchQuery} 
         setSearchQuery={handleSearchChange} 
@@ -250,59 +377,118 @@ export default function HomeScreen() {
         setSortBy={handleSortChange}
       />
 
-      {Object.keys(userAlignment).length === 0 && (
-        <View style={styles.alignmentPrompt}>
-          <Text style={styles.alignmentPromptText}>
-            Set your political alignment to see which businesses match your values!
+      {/* Featured Businesses Section */}
+      {!hasUserAlignment && filteredBusinesses.length > 0 && (
+        <View style={featuredSectionStyle}>
+          <Text style={featuredSectionTitleStyle}>
+            ✨ Featured Businesses
           </Text>
-          <TouchableOpacity 
-            style={styles.setAlignmentButton}
-            onPress={() => router.push('/political-alignment')}
-          >
-            <Text style={styles.setAlignmentButtonText}>Set Alignment</Text>
-          </TouchableOpacity>
+          <Text style={featuredSectionSubtitleStyle}>
+            Popular businesses with strong political positions
+          </Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={featuredScrollContainerStyle}>
+              {filteredBusinesses.slice(0, 3).map((business) => (
+                <BusinessCard
+                  key={business.id}
+                  business={business}
+                  userAlignment={userAlignment}
+                  onPress={() => handleBusinessPress(business)}
+                  variant="featured"
+                />
+              ))}
+            </View>
+          </ScrollView>
         </View>
       )}
 
-      <View style={styles.resultsInfo}>
-        <Text style={styles.resultsText}>
+      {/* Quick Setup Prompt */}
+      {!hasUserAlignment && (
+        <Card style={alignmentPromptStyle}>
+          <View style={alignmentPromptContentStyle}>
+            <View style={alignmentPromptHeaderStyle}>
+              <Ionicons name="compass" size={32} color={Colors.primary[600]} />
+              <View style={alignmentPromptTextContainerStyle}>
+                <Text style={alignmentPromptTitleStyle}>
+                  Get Personalized Matches
+                </Text>
+                <Text style={alignmentPromptDescriptionStyle}>
+                  Set your political alignment to see which businesses match your values!
+                </Text>
+              </View>
+            </View>
+            <Button
+              variant="primary"
+              size="lg"
+              onPress={() => router.push('/political-alignment')}
+            >
+              Set My Values
+            </Button>
+          </View>
+        </Card>
+      )}
+
+      {/* Results Info */}
+      <View style={resultsInfoStyle}>
+        <Text style={resultsTextStyle}>
           {filteredBusinesses.length} {filteredBusinesses.length === 1 ? 'business' : 'businesses'} found
           {searchQuery && ` for "${searchQuery}"`}
           {selectedCategory !== 'All' && ` in ${selectedCategory}`}
         </Text>
+        
+        {hasUserAlignment && (
+          <View style={alignmentIndicatorStyle}>
+            <Ionicons name="checkmark-circle" size={16} color={Colors.success[500]} />
+            <Text style={alignmentIndicatorTextStyle}>
+              Personalized for your values
+            </Text>
+          </View>
+        )}
       </View>
 
+      {/* Business List */}
       <FlatList
         data={filteredBusinesses}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <BusinessCard 
             business={item}
-            userAlignment={userAlignment}
+            userAlignment={hasUserAlignment ? userAlignment : undefined}
             onPress={() => handleBusinessPress(item)}
+            variant="default"
           />
         )}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="search" size={64} color="#ddd" />
-            <Text style={styles.emptyText}>
-              {searchQuery || selectedCategory !== 'All' 
-                ? "No businesses match your filters" 
-                : "No businesses available"}
-            </Text>
-            {(searchQuery || selectedCategory !== 'All') && (
-              <TouchableOpacity 
-                style={styles.clearFiltersButton}
-                onPress={() => {
-                  setSearchQuery('');
-                  setSelectedCategory('All');
-                }}
-              >
-                <Text style={styles.clearFiltersButtonText}>Clear Filters</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          <Card style={emptyContainerStyle}>
+            <View style={emptyContentStyle}>
+              <Ionicons name="search" size={64} color={Colors.gray[300]} />
+              <Text style={emptyTitleStyle}>
+                {searchQuery || selectedCategory !== 'All' 
+                  ? "No businesses match your filters" 
+                  : "No businesses available"}
+              </Text>
+              <Text style={emptyDescriptionStyle}>
+                {searchQuery || selectedCategory !== 'All' 
+                  ? "Try adjusting your search terms or filters" 
+                  : "We're working on adding more businesses to the platform"}
+              </Text>
+              {(searchQuery || selectedCategory !== 'All') && (
+                <Button
+                  variant="primary"
+                  onPress={() => {
+                    setSearchQuery('');
+                    setSelectedCategory('All');
+                  }}
+                  style={{ marginTop: Spacing[4] }}
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </View>
+          </Card>
         }
+        contentContainerStyle={listContainerStyle}
+        showsVerticalScrollIndicator={false}
         onEndReachedThreshold={0.5}
         onEndReached={() => {
           // Load more results when reaching the end
@@ -379,113 +565,264 @@ function getSampleBusinesses(): Business[] {
   ];
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9f9f9',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 20,
-    fontSize: 16,
-    color: '#666',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#e74c3c',
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  retryText: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 10,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 15,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  placeholder: {
-    width: 24,
-  },
-  alignmentPrompt: {
-    backgroundColor: '#fff',
-    padding: 15,
-    margin: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  alignmentPromptText: {
-    textAlign: 'center',
-    marginBottom: 10,
-    color: '#666',
-  },
-  setAlignmentButton: {
-    backgroundColor: '#f4511e',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  setAlignmentButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  resultsInfo: {
-    backgroundColor: '#fff',
-    padding: 10,
-    margin: 10,
-    borderRadius: 8,
-  },
-  resultsText: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  clearFiltersButton: {
-    marginTop: 20,
-    backgroundColor: '#f4511e',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  clearFiltersButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-});
+// Premium Style Definitions
+const containerStyle = {
+  flex: 1,
+  backgroundColor: Colors.gray[50],
+};
+
+// Loading States
+const loadingContainerStyle = {
+  ...StyleMixins.flexCenter,
+  flex: 1,
+  backgroundColor: Colors.white,
+};
+
+const loadingTextStyle = {
+  ...StyleMixins.body,
+  color: Colors.gray[600],
+  marginTop: Spacing[5],
+};
+
+const errorContainerStyle = {
+  ...StyleMixins.flexCenter,
+  flex: 1,
+  padding: Spacing[5],
+};
+
+const errorTextStyle = {
+  ...StyleMixins.heading4,
+  color: Colors.error[600],
+  textAlign: 'center' as const,
+  marginTop: Spacing[4],
+};
+
+// Header Styles
+const headerStyle = {
+  ...StyleMixins.flexBetween,
+  paddingHorizontal: Spacing[4],
+  paddingVertical: Spacing[4],
+  backgroundColor: Colors.white,
+  borderBottomWidth: 1,
+  borderBottomColor: Colors.gray[200],
+};
+
+const settingsButtonStyle = {
+  padding: Spacing[2],
+  borderRadius: 8,
+};
+
+const logoContainerStyle = {
+  ...StyleMixins.flexStart,
+};
+
+const logoIconContainerStyle = {
+  position: 'relative' as const,
+  marginRight: Spacing[2],
+};
+
+const logoCheckmarkStyle = {
+  position: 'absolute' as const,
+  top: -4,
+  right: -4,
+};
+
+const titleStyle = {
+  ...StyleMixins.heading3,
+  color: Colors.gray[900],
+};
+
+const notificationButtonStyle = {
+  position: 'relative' as const,
+  padding: Spacing[2],
+};
+
+const notificationBadgeStyle = {
+  position: 'absolute' as const,
+  top: 2,
+  right: 2,
+  backgroundColor: Colors.error[500],
+  borderRadius: 8,
+  minWidth: 16,
+  height: 16,
+  ...StyleMixins.flexCenter,
+};
+
+const notificationBadgeTextStyle = {
+  fontSize: 10,
+  color: Colors.white,
+  fontWeight: 'bold' as const,
+};
+
+// Hero Section Styles
+const heroContainerStyle = {
+  paddingHorizontal: Spacing[6],
+  paddingVertical: Spacing[12],
+};
+
+const heroContentStyle = {
+  alignItems: 'center' as const,
+  textAlign: 'center' as const,
+};
+
+const heroHeaderStyle = {
+  alignItems: 'center' as const,
+  marginBottom: Spacing[8],
+};
+
+const heroTitleStyle = {
+  ...StyleMixins.heading1,
+  color: Colors.white,
+  textAlign: 'center' as const,
+  marginBottom: Spacing[4],
+  lineHeight: 48,
+};
+
+const heroSubtitleStyle = {
+  ...StyleMixins.bodyLarge,
+  color: Colors.primary[100],
+  textAlign: 'center' as const,
+  maxWidth: 320,
+};
+
+const heroStatsStyle = {
+  ...StyleMixins.flexBetween,
+  width: '100%' as const,
+  marginBottom: Spacing[8],
+};
+
+const heroStatItemStyle = {
+  alignItems: 'center' as const,
+};
+
+const heroStatNumberStyle = {
+  ...StyleMixins.heading2,
+  color: Colors.white,
+  fontWeight: 'bold' as const,
+};
+
+const heroStatLabelStyle = {
+  ...StyleMixins.bodySmall,
+  color: Colors.primary[200],
+  marginTop: Spacing[1],
+};
+
+const heroActionsStyle = {
+  gap: Spacing[3],
+  width: '100%' as const,
+  alignItems: 'center' as const,
+};
+
+const heroButtonStyle = {
+  backgroundColor: Colors.white,
+  minWidth: 200,
+};
+
+// Featured Section Styles
+const featuredSectionStyle = {
+  padding: Spacing[6],
+  backgroundColor: Colors.white,
+  marginBottom: Spacing[2],
+};
+
+const featuredSectionTitleStyle = {
+  ...StyleMixins.heading3,
+  marginBottom: Spacing[2],
+};
+
+const featuredSectionSubtitleStyle = {
+  ...StyleMixins.body,
+  color: Colors.gray[600],
+  marginBottom: Spacing[6],
+};
+
+const featuredScrollContainerStyle = {
+  flexDirection: 'row' as const,
+  paddingHorizontal: Spacing[4],
+  gap: Spacing[4],
+};
+
+// Alignment Prompt Styles
+const alignmentPromptStyle = {
+  margin: Spacing[4],
+  padding: Spacing[6],
+};
+
+const alignmentPromptContentStyle = {
+  gap: Spacing[6],
+};
+
+const alignmentPromptHeaderStyle = {
+  ...StyleMixins.flexStart,
+  gap: Spacing[4],
+};
+
+const alignmentPromptTextContainerStyle = {
+  flex: 1,
+};
+
+const alignmentPromptTitleStyle = {
+  ...StyleMixins.heading4,
+  marginBottom: Spacing[2],
+};
+
+const alignmentPromptDescriptionStyle = {
+  ...StyleMixins.body,
+  color: Colors.gray[600],
+};
+
+// Results Info Styles
+const resultsInfoStyle = {
+  backgroundColor: Colors.white,
+  padding: Spacing[4],
+  marginHorizontal: Spacing[4],
+  marginBottom: Spacing[2],
+  borderRadius: 8,
+  gap: Spacing[2],
+};
+
+const resultsTextStyle = {
+  ...StyleMixins.body,
+  color: Colors.gray[700],
+  textAlign: 'center' as const,
+};
+
+const alignmentIndicatorStyle = {
+  ...StyleMixins.flexCenter,
+  gap: Spacing[1],
+};
+
+const alignmentIndicatorTextStyle = {
+  ...StyleMixins.caption,
+  color: Colors.success[600],
+  fontWeight: '500' as const,
+};
+
+// Empty State Styles
+const emptyContainerStyle = {
+  margin: Spacing[6],
+  padding: Spacing[8],
+};
+
+const emptyContentStyle = {
+  alignItems: 'center' as const,
+  textAlign: 'center' as const,
+};
+
+const emptyTitleStyle = {
+  ...StyleMixins.heading4,
+  color: Colors.gray[700],
+  marginTop: Spacing[4],
+  marginBottom: Spacing[2],
+};
+
+const emptyDescriptionStyle = {
+  ...StyleMixins.body,
+  color: Colors.gray[500],
+  textAlign: 'center' as const,
+};
+
+// List Container Style
+const listContainerStyle = {
+  paddingBottom: Spacing[8],
+};

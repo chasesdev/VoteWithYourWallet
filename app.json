@@ -25,8 +25,9 @@
       "package": "com.votewithyourwallet.app"
     },
     "web": {
-      "bundler": "metro",
-      "output": "static",
+      "bundler": "metro", 
+      "output": "server",
+      "staticGeneration": false,
       "favicon": "./assets/images/favicon.png",
       "name": "VoteWithYourWallet",
       "shortName": "VoteWithYourWallet",
@@ -45,8 +46,9 @@
       "typedRoutes": true
     },
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "votewithyourwallet-project"
+        "projectId": "9d512b0c-4910-4efc-956d-b7d165198cf1"
       }
     }
   }

@@ -1,0 +1,12 @@
+{
+  "buildCommand": "npx expo export --platform web && cp dist/server/index.html dist/ && cp -r dist/client/_expo dist/_expo && cp -r dist/client/assets dist/assets && cp dist/client/favicon.ico dist/",
+  "outputDirectory": "dist",
+  "framework": null,
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/_expo/(.*)", "destination": "/_expo/$1" },
+    { "source": "/assets/(.*)", "destination": "/assets/$1" },
+    { "source": "/favicon.ico", "destination": "/favicon.ico" },
+    { "source": "/((?!api|_expo|assets|.*\\..*).*)", "destination": "/index.html" }
+  ]
+}

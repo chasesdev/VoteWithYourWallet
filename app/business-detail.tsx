@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Linking, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Linking, ActivityIndicator, FlatList, Share, Alert, Modal, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { getBusinessAlignment } from '../utils/api';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import { getBusinessAlignment, fetchBusinessReviews, submitReview, getCurrentUserId } from '../utils/api';
+import { Colors, Typography, Spacing, Shadows } from '../constants/design';
+import { StyleMixins } from '../utils/styles';
+import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
+import AlignmentBadge, { AlignmentSpectrum } from '../components/ui/AlignmentBadge';
 
 interface Business {
   id: number;
@@ -14,6 +22,11 @@ interface Business {
   latitude?: number;
   longitude?: number;
   imageUrl?: string;
+  phone?: string;
+  hours?: string;
+  priceRange?: string;
+  rating?: number;
+  reviewCount?: number;
   alignment: {
     liberal: number;
     conservative: number;
@@ -25,7 +38,20 @@ interface Business {
     organization: string;
     amount: number;
     politicalLean: string;
+    year: number;
   }>;
+  media?: Array<{
+    id: string;
+    type: 'image' | 'video';
+    url: string;
+    caption?: string;
+  }>;
+  socialMedia?: {
+    twitter?: string;
+    facebook?: string;
+    instagram?: string;
+    linkedin?: string;
+  };
 }
 
 interface UserAlignment {
@@ -45,6 +71,36 @@ interface AlignmentScore {
   overallAlignment: number;
 }
 
+interface Review {
+  id: number;
+  userId: number;
+  userName: string;
+  userAvatar?: string;
+  rating: number;
+  comment: string;
+  date: string;
+  helpful: number;
+  alignmentMatch?: number;
+  media?: Array<{
+    id: string;
+    type: 'image' | 'video';
+    url: string;
+    caption?: string;
+  }>;
+}
+
+interface PoliticalActivity {
+  id: number;
+  date: string;
+  type: 'donation' | 'statement' | 'endorsement' | 'lobbying' | 'lawsuit';
+  title: string;
+  description: string;
+  amount?: number;
+  recipient?: string;
+  impact: 'positive' | 'negative' | 'neutral';
+  sourceUrl?: string;
+}
+
 export default function BusinessDetailScreen() {
   const router = useRouter();
   const localParams = useLocalSearchParams();
@@ -59,6 +115,17 @@ export default function BusinessDetailScreen() {
   const [alignmentScore, setAlignmentScore] = useState<AlignmentScore | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'alignment' | 'reviews' | 'activity'>('overview');
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [politicalActivity, setPoliticalActivity] = useState<PoliticalActivity[]>([]);
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
+  const [showMediaModal, setShowMediaModal] = useState(false);
+  const [userReview, setUserReview] = useState('');
+  const [userRating, setUserRating] = useState(0);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showMediaUploadModal, setShowMediaUploadModal] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [mediaCaption, setMediaCaption] = useState('');
 
   useEffect(() => {
     const loadBusinessData = async () => {
@@ -79,6 +146,15 @@ export default function BusinessDetailScreen() {
               calculateAlignmentScore(parsedBusiness, alignment);
             }
           }
+          
+          // Load actual reviews from the backend
+          const reviewsResponse = await fetchBusinessReviews(parsedBusiness.id);
+          if (reviewsResponse.success && reviewsResponse.data) {
+            setReviews(reviewsResponse.data as Review[]);
+          } else {
+            // Fallback to sample data
+            loadSampleData(parsedBusiness);
+          }
         }
       } catch (error) {
         console.error('Error loading business data:', error);
@@ -90,6 +166,95 @@ export default function BusinessDetailScreen() {
 
     loadBusinessData();
   }, []);
+
+  const loadSampleData = (businessData: Business) => {
+    // Sample reviews
+    const sampleReviews: Review[] = [
+      {
+        id: 1,
+        userId: 1,
+        userName: 'Sarah Johnson',
+        rating: 5,
+        comment: 'Amazing business that truly aligns with my values! Great products and excellent service.',
+        date: '2024-01-15',
+        helpful: 12,
+        alignmentMatch: 85,
+        media: [
+          {
+            id: '1',
+            type: 'image',
+            url: 'https://via.placeholder.com/300x200',
+            caption: 'Great store interior'
+          }
+        ]
+      },
+      {
+        id: 2,
+        userId: 2,
+        userName: 'Mike Chen',
+        rating: 4,
+        comment: 'Good quality products and the company practices what they preach. Will definitely support again.',
+        date: '2024-01-10',
+        helpful: 8,
+        alignmentMatch: 72,
+      },
+      {
+        id: 3,
+        userId: 3,
+        userName: 'Emma Davis',
+        rating: 3,
+        comment: 'Decent products but I wish they were more transparent about their political contributions.',
+        date: '2024-01-05',
+        helpful: 5,
+        alignmentMatch: 45,
+      },
+    ];
+    setReviews(sampleReviews);
+
+    // Sample political activity
+    const sampleActivity: PoliticalActivity[] = [
+      {
+        id: 1,
+        date: '2023-12-01',
+        type: 'donation',
+        title: 'Political Campaign Contribution',
+        description: 'Donated to progressive political campaign focused on environmental protection',
+        amount: 50000,
+        recipient: 'Green Future PAC',
+        impact: 'positive',
+        sourceUrl: 'https://example.com/source1',
+      },
+      {
+        id: 2,
+        date: '2023-10-15',
+        type: 'statement',
+        title: 'Public Policy Statement',
+        description: 'Released official statement supporting climate change legislation',
+        impact: 'positive',
+        sourceUrl: 'https://example.com/source2',
+      },
+      {
+        id: 3,
+        date: '2023-08-20',
+        type: 'endorsement',
+        title: 'Political Endorsement',
+        description: 'Endorsed candidates who support sustainable business practices',
+        impact: 'positive',
+        sourceUrl: 'https://example.com/source3',
+      },
+      {
+        id: 4,
+        date: '2023-06-10',
+        type: 'lobbying',
+        title: 'Lobbying Activity',
+        description: 'Lobbied for renewable energy tax credits',
+        amount: 25000,
+        impact: 'positive',
+        sourceUrl: 'https://example.com/source4',
+      },
+    ];
+    setPoliticalActivity(sampleActivity);
+  };
 
   const calculateAlignmentScore = async (businessData: Business, alignment: UserAlignment) => {
     try {
@@ -154,10 +319,10 @@ export default function BusinessDetailScreen() {
   };
 
   const getAlignmentColor = (percentage: number): string => {
-    if (percentage >= 75) return '#2ecc71'; // Green - high alignment
-    if (percentage >= 50) return '#f1c40f'; // Yellow - medium alignment
-    if (percentage >= 25) return '#e67e22'; // Orange - low alignment
-    return '#e74c3c'; // Red - very low alignment
+    if (percentage >= 75) return Colors.success[500];
+    if (percentage >= 50) return Colors.accent[500];
+    if (percentage >= 25) return Colors.warning[500];
+    return Colors.error[500];
   };
 
   const getAlignmentLabel = (percentage: number): string => {
@@ -180,10 +345,653 @@ export default function BusinessDetailScreen() {
     }
   };
 
+  const callBusiness = () => {
+    if (business?.phone) {
+      Linking.openURL(`tel:${business.phone}`);
+    }
+  };
+
+  const shareBusiness = async () => {
+    if (business) {
+      try {
+        await Share.share({
+          message: `Check out ${business.name} - ${business.description}`,
+          url: business.website,
+          title: business.name,
+        });
+      } catch (error) {
+        console.error('Error sharing business:', error);
+      }
+    }
+  };
+
+  const handleSubmitReview = async () => {
+    if (userRating === 0) {
+      Alert.alert('Rating Required', 'Please select a rating before submitting your review.');
+      return;
+    }
+
+    if (!userReview.trim()) {
+      Alert.alert('Review Required', 'Please write a review before submitting.');
+      return;
+    }
+
+    try {
+      const userId = getCurrentUserId();
+      if (!business) {
+        Alert.alert('Error', 'Business data not available');
+        return;
+      }
+      
+      const response = await submitReview(
+        business.id,
+        userId,
+        userRating,
+        userReview,
+        [], // Media would be uploaded separately
+        userAlignment
+      );
+
+      if (response.success) {
+        // Refresh reviews
+        const reviewsResponse = await fetchBusinessReviews(business.id);
+        if (reviewsResponse.success && reviewsResponse.data) {
+          setReviews(reviewsResponse.data as Review[]);
+        }
+
+        setUserReview('');
+        setUserRating(0);
+        setShowReviewModal(false);
+        Alert.alert('Success', 'Your review has been submitted!');
+      } else {
+        Alert.alert('Error', response.error || 'Failed to submit review');
+      }
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      Alert.alert('Error', 'Failed to submit review');
+    }
+  };
+
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        await uploadMedia(result.assets[0].uri, 'image');
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const takePhoto = async () => {
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        await uploadMedia(result.assets[0].uri, 'image');
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Failed to take photo');
+    }
+  };
+
+  const pickDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['image/*', 'video/*'],
+        copyToCacheDirectory: true,
+      });
+
+      if (result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const mediaType = asset.mimeType?.startsWith('image/') ? 'image' : 'video';
+        await uploadMedia(asset.uri, mediaType);
+      }
+    } catch (error) {
+      console.error('Error picking document:', error);
+      Alert.alert('Error', 'Failed to pick document');
+    }
+  };
+
+  const uploadMedia = async (uri: string, type: 'image' | 'video') => {
+    setUploadingMedia(true);
+    
+    try {
+      // Simulate upload process
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Create a new media item
+      const newMedia = {
+        id: Date.now().toString(),
+        type,
+        url: uri,
+        caption: mediaCaption || undefined,
+      };
+
+      // Add to business media
+      if (business) {
+        const updatedBusiness = {
+          ...business,
+          media: [...(business.media || []), newMedia]
+        };
+        setBusiness(updatedBusiness);
+      }
+
+      setMediaCaption('');
+      setShowMediaUploadModal(false);
+      Alert.alert('Success', 'Media uploaded successfully!');
+    } catch (error) {
+      console.error('Error uploading media:', error);
+      Alert.alert('Error', 'Failed to upload media');
+    } finally {
+      setUploadingMedia(false);
+    }
+  };
+
+  const renderMediaGallery = () => {
+    if (!business?.media || business.media.length === 0) return null;
+
+    return (
+      <View style={styles.mediaGallery}>
+        <View style={styles.mediaGalleryHeader}>
+          <Text style={styles.sectionTitle}>Media Gallery</Text>
+          <Button
+            variant="ghost"
+            size="sm"
+            onPress={() => setShowMediaUploadModal(true)}
+          >
+            <Ionicons name="add" size={16} color={Colors.primary[600]} />
+            <Text style={styles.addMediaText}>Add Media</Text>
+          </Button>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {business.media.map((media, index) => (
+            <TouchableOpacity
+              key={media.id}
+              style={styles.mediaItem}
+              onPress={() => {
+                setSelectedMediaIndex(index);
+                setShowMediaModal(true);
+              }}
+            >
+              <Image
+                source={{ uri: media.url }}
+                style={styles.mediaThumbnail}
+                resizeMode="cover"
+              />
+              {media.type === 'video' && (
+                <View style={styles.videoOverlay}>
+                  <Ionicons name="play-circle" size={32} color={Colors.white} />
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
+
+  const renderMediaUploadModal = () => (
+    <Modal
+      visible={showMediaUploadModal}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => setShowMediaUploadModal(false)}
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>Upload Media</Text>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setShowMediaUploadModal(false)}
+          >
+            <Ionicons name="close" size={24} color={Colors.gray[600]} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.modalContent}>
+          {uploadingMedia ? (
+            <View style={styles.uploadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primary[600]} />
+              <Text style={styles.uploadingText}>Uploading media...</Text>
+            </View>
+          ) : (
+            <>
+              <View style={styles.uploadOptions}>
+                <TouchableOpacity style={styles.uploadOption} onPress={pickImage}>
+                  <Ionicons name="image" size={32} color={Colors.primary[600]} />
+                  <Text style={styles.uploadOptionText}>Choose from Library</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.uploadOption} onPress={takePhoto}>
+                  <Ionicons name="camera" size={32} color={Colors.primary[600]} />
+                  <Text style={styles.uploadOptionText}>Take Photo</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.uploadOption} onPress={pickDocument}>
+                  <Ionicons name="document" size={32} color={Colors.primary[600]} />
+                  <Text style={styles.uploadOptionText}>Choose Document</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.captionInput}>
+                <Text style={styles.captionLabel}>Caption (Optional)</Text>
+                <TextInput
+                  style={styles.captionTextInput}
+                  value={mediaCaption}
+                  onChangeText={setMediaCaption}
+                  placeholder="Add a caption to your media..."
+                  multiline
+                />
+              </View>
+            </>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const renderBusinessInfo = () => (
+    <Card style={styles.businessInfoCard}>
+      <View style={styles.businessInfoGrid}>
+        {business?.phone && (
+          <TouchableOpacity style={styles.infoItem} onPress={callBusiness}>
+            <View style={styles.infoIcon}>
+              <Ionicons name="call" size={20} color={Colors.primary[600]} />
+            </View>
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>Phone</Text>
+              <Text style={styles.infoValue}>{business.phone}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+        
+        {business?.hours && (
+          <View style={styles.infoItem}>
+            <View style={styles.infoIcon}>
+              <Ionicons name="time" size={20} color={Colors.primary[600]} />
+            </View>
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>Hours</Text>
+              <Text style={styles.infoValue}>{business.hours}</Text>
+            </View>
+          </View>
+        )}
+        
+        {business?.priceRange && (
+          <View style={styles.infoItem}>
+            <View style={styles.infoIcon}>
+              <Ionicons name="pricetag" size={20} color={Colors.primary[600]} />
+            </View>
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>Price Range</Text>
+              <Text style={styles.infoValue}>{business.priceRange}</Text>
+            </View>
+          </View>
+        )}
+        
+        {business?.rating && (
+          <View style={styles.infoItem}>
+            <View style={styles.infoIcon}>
+              <Ionicons name="star" size={20} color={Colors.primary[600]} />
+            </View>
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>Rating</Text>
+              <View style={styles.ratingContainer}>
+                <Text style={styles.infoValue}>{business.rating.toFixed(1)}</Text>
+                <Ionicons name="star" size={14} color={Colors.accent[500]} />
+                <Text style={styles.reviewCountText}>({business.reviewCount} reviews)</Text>
+              </View>
+            </View>
+          </View>
+        )}
+      </View>
+    </Card>
+  );
+
+  const renderSocialMedia = () => {
+    if (!business?.socialMedia) return null;
+
+    return (
+      <Card style={styles.socialMediaCard}>
+        <Text style={styles.sectionTitle}>Connect</Text>
+        <View style={styles.socialMediaGrid}>
+          {business.socialMedia.twitter && (
+            <TouchableOpacity style={styles.socialButton}>
+              <Ionicons name="logo-twitter" size={24} color="#1DA1F2" />
+            </TouchableOpacity>
+          )}
+          {business.socialMedia.facebook && (
+            <TouchableOpacity style={styles.socialButton}>
+              <Ionicons name="logo-facebook" size={24} color="#4267B2" />
+            </TouchableOpacity>
+          )}
+          {business.socialMedia.instagram && (
+            <TouchableOpacity style={styles.socialButton}>
+              <Ionicons name="logo-instagram" size={24} color="#E4405F" />
+            </TouchableOpacity>
+          )}
+          {business.socialMedia.linkedin && (
+            <TouchableOpacity style={styles.socialButton}>
+              <Ionicons name="logo-linkedin" size={24} color="#0077B5" />
+            </TouchableOpacity>
+          )}
+        </View>
+      </Card>
+    );
+  };
+
+  const renderInteractiveAlignment = () => {
+    if (!business || !alignmentScore) return null;
+
+    return (
+      <Card style={styles.alignmentCard}>
+        <Text style={styles.sectionTitle}>Political Alignment Analysis</Text>
+        
+        <View style={styles.overallAlignmentContainer}>
+          <Text style={styles.overallAlignmentLabel}>Overall Match with Your Values</Text>
+          <AlignmentBadge
+            percentage={alignmentScore.overallAlignment}
+            size="lg"
+            variant="match"
+          />
+          <Text style={styles.overallAlignmentScoreText}>
+            {getAlignmentLabel(alignmentScore.overallAlignment)}
+          </Text>
+        </View>
+
+        <View style={styles.alignmentBreakdown}>
+          <Text style={styles.breakdownTitle}>Detailed Breakdown</Text>
+          <AlignmentSpectrum
+            alignments={business.alignment}
+            userAlignments={userAlignment}
+            compact={false}
+          />
+        </View>
+
+        <View style={styles.alignmentInsights}>
+          <Text style={styles.insightsTitle}>Key Insights</Text>
+          <View style={styles.insightItem}>
+            <Ionicons name="checkmark-circle" size={16} color={Colors.success[500]} />
+            <Text style={styles.insightText}>
+              Strongest match: {getStrongestAlignment(alignmentScore)}
+            </Text>
+          </View>
+          <View style={styles.insightItem}>
+            <Ionicons name="information-circle" size={16} color={Colors.primary[500]} />
+            <Text style={styles.insightText}>
+              {getAlignmentInsight(alignmentScore)}
+            </Text>
+          </View>
+        </View>
+      </Card>
+    );
+  };
+
+  const getStrongestAlignment = (score: AlignmentScore): string => {
+    const { liberal, conservative, libertarian, green, centrist } = score;
+    const max = Math.max(liberal, conservative, libertarian, green, centrist);
+    
+    if (max === liberal) return 'Liberal values';
+    if (max === conservative) return 'Conservative values';
+    if (max === libertarian) return 'Libertarian values';
+    if (max === green) return 'Green values';
+    return 'Centrist values';
+  };
+
+  const getAlignmentInsight = (score: AlignmentScore): string => {
+    const overall = score.overallAlignment;
+    if (overall >= 75) return 'Excellent alignment with your political values!';
+    if (overall >= 50) return 'Good alignment with some room for improvement.';
+    if (overall >= 25) return 'Moderate alignment - consider your priorities.';
+    return 'Low alignment - this business may not match your values.';
+  };
+
+  const renderReviews = () => (
+    <View style={styles.reviewsSection}>
+      <View style={styles.reviewsHeader}>
+        <Text style={styles.sectionTitle}>Customer Reviews</Text>
+        <Button
+          variant="ghost"
+          size="sm"
+          onPress={() => setShowReviewModal(true)}
+        >
+          Write Review
+        </Button>
+      </View>
+
+      <FlatList
+        data={reviews}
+        renderItem={({ item }) => (
+          <Card style={styles.reviewCard}>
+            <View style={styles.reviewHeader}>
+              <View style={styles.reviewAuthor}>
+                <View style={styles.reviewAvatar}>
+                  <Ionicons name="person" size={16} color={Colors.gray[500]} />
+                </View>
+                <View>
+                  <Text style={styles.reviewAuthorName}>{item.userName}</Text>
+                  <Text style={styles.reviewDate}>{item.date}</Text>
+                </View>
+              </View>
+              <View style={styles.reviewRating}>
+                <View style={styles.stars}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Ionicons
+                      key={star}
+                      name={star <= item.rating ? "star" : "star-outline"}
+                      size={14}
+                      color={Colors.accent[500]}
+                    />
+                  ))}
+                </View>
+                {item.alignmentMatch && (
+                  <Badge variant="primary" size="sm">
+                    {item.alignmentMatch}% match
+                  </Badge>
+                )}
+              </View>
+            </View>
+            <Text style={styles.reviewComment}>{item.comment}</Text>
+            
+            {/* Review Media */}
+            {item.media && item.media.length > 0 && (
+              <View style={styles.reviewMedia}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {item.media.map((media) => (
+                    <TouchableOpacity key={media.id} style={styles.reviewMediaItem}>
+                      <Image
+                        source={{ uri: media.url }}
+                        style={styles.reviewMediaThumbnail}
+                        resizeMode="cover"
+                      />
+                      {media.type === 'video' && (
+                        <View style={styles.reviewVideoOverlay}>
+                          <Ionicons name="play" size={16} color={Colors.white} />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+            
+            <View style={styles.reviewActions}>
+              <TouchableOpacity style={styles.helpfulButton}>
+                <Ionicons name="thumbs-up" size={14} color={Colors.gray[500]} />
+                <Text style={styles.helpfulText}>Helpful ({item.helpful})</Text>
+              </TouchableOpacity>
+            </View>
+          </Card>
+        )}
+        keyExtractor={(item) => item.id.toString()}
+        showsVerticalScrollIndicator={false}
+      />
+    </View>
+  );
+
+  const renderPoliticalActivity = () => (
+    <View style={styles.activitySection}>
+      <Text style={styles.sectionTitle}>Political Activity Timeline</Text>
+      <FlatList
+        data={politicalActivity}
+        renderItem={({ item }) => (
+          <Card style={styles.activityCard}>
+            <View style={styles.activityHeader}>
+              <View style={styles.activityType}>
+                <Ionicons
+                  name={getActivityIcon(item.type)}
+                  size={20}
+                  color={getActivityColor(item.impact)}
+                />
+                <Text style={styles.activityTypeText}>{item.type}</Text>
+              </View>
+              <Text style={styles.activityDate}>{item.date}</Text>
+            </View>
+            <Text style={styles.activityTitle}>{item.title}</Text>
+            <Text style={styles.activityDescription}>{item.description}</Text>
+            {item.amount && (
+              <Text style={styles.activityAmount}>Amount: ${item.amount.toLocaleString()}</Text>
+            )}
+            {item.recipient && (
+              <Text style={styles.activityRecipient}>Recipient: {item.recipient}</Text>
+            )}
+            {item.sourceUrl && (
+              <TouchableOpacity style={styles.sourceLink}>
+                <Text style={styles.sourceText}>View Source</Text>
+                <Ionicons name="open-outline" size={14} color={Colors.primary[600]} />
+              </TouchableOpacity>
+            )}
+          </Card>
+        )}
+        keyExtractor={(item) => item.id.toString()}
+        showsVerticalScrollIndicator={false}
+      />
+    </View>
+  );
+
+  const getActivityIcon = (type: string): keyof typeof Ionicons.glyphMap => {
+    switch (type) {
+      case 'donation': return 'cash';
+      case 'statement': return 'document-text';
+      case 'endorsement': return 'hand-left';
+      case 'lobbying': return 'people';
+      case 'lawsuit': return 'document';
+      default: return 'information-circle';
+    }
+  };
+
+  const getActivityColor = (impact: string): string => {
+    switch (impact) {
+      case 'positive': return Colors.success[500];
+      case 'negative': return Colors.error[500];
+      default: return Colors.gray[500];
+    }
+  };
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return (
+          <View style={styles.tabContent}>
+            {renderBusinessInfo()}
+            {renderMediaGallery()}
+            {renderSocialMedia()}
+          </View>
+        );
+      case 'alignment':
+        return (
+          <View style={styles.tabContent}>
+            {renderInteractiveAlignment()}
+          </View>
+        );
+      case 'reviews':
+        return renderReviews();
+      case 'activity':
+        return renderPoliticalActivity();
+      default:
+        return null;
+    }
+  };
+
+  const renderReviewModal = () => (
+    <Modal
+      visible={showReviewModal}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => setShowReviewModal(false)}
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>Write a Review</Text>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setShowReviewModal(false)}
+          >
+            <Ionicons name="close" size={24} color={Colors.gray[600]} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.modalContent}>
+          <View style={styles.ratingInput}>
+            <Text style={styles.ratingLabel}>Your Rating</Text>
+            <View style={styles.starsInput}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity
+                  key={star}
+                  onPress={() => setUserRating(star)}
+                >
+                  <Ionicons
+                    name={star <= userRating ? "star" : "star-outline"}
+                    size={32}
+                    color={Colors.accent[500]}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.reviewInput}>
+            <Text style={styles.reviewInputLabel}>Your Review</Text>
+            <TextInput
+              style={styles.reviewTextInput}
+              value={userReview}
+              onChangeText={setUserReview}
+              placeholder="Share your experience with this business..."
+              multiline
+              numberOfLines={4}
+            />
+          </View>
+
+          <Button
+            variant="primary"
+            size="lg"
+            onPress={handleSubmitReview}
+            style={styles.submitButton}
+          >
+            Submit Review
+          </Button>
+        </View>
+      </View>
+    </Modal>
+  );
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#f4511e" />
+        <ActivityIndicator size="large" color={Colors.primary[600]} />
         <Text style={styles.loadingText}>Loading business details...</Text>
       </View>
     );
@@ -192,363 +1000,611 @@ export default function BusinessDetailScreen() {
   if (error || !business) {
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle" size={64} color="#e74c3c" />
+        <Ionicons name="alert-circle" size={64} color={Colors.error[500]} />
         <Text style={styles.errorText}>{error || 'Business not found'}</Text>
-        <TouchableOpacity 
-          style={styles.retryButton}
+        <Button
+          variant="primary"
           onPress={() => router.back()}
+          style={styles.retryButton}
         >
-          <Text style={styles.retryButtonText}>Go Back</Text>
-        </TouchableOpacity>
+          Go Back
+        </Button>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={styles.container}>
+      {/* Header Image */}
       <Image 
         source={{ uri: business.imageUrl || 'https://via.placeholder.com/400x200' }} 
         style={styles.businessImage} 
       />
-      
-      <View style={styles.content}>
+
+      {/* Content */}
+      <ScrollView style={styles.scrollViewContent}>
+        {/* Business Header */}
         <View style={styles.businessHeader}>
-          <Text style={styles.businessName}>{business.name}</Text>
-          <Text style={styles.businessCategory}>{business.category}</Text>
-        </View>
-
-        <Text style={styles.businessDescription}>{business.description}</Text>
-
-        <View style={styles.businessInfo}>
-          <View style={styles.infoItem}>
-            <Ionicons name="location" size={20} color="#666" />
-            <Text style={styles.infoText}>{business.address || 'Address not available'}</Text>
-          </View>
-          {business.website && (
-            <View style={styles.infoItem}>
-              <Ionicons name="globe" size={20} color="#666" />
-              <Text style={styles.infoText}>{business.website}</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Political Alignment Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Political Alignment</Text>
-          <View style={styles.alignmentContainer}>
-            {Object.entries(business.alignment).map(([key, value]) => (
-              <View key={key} style={styles.alignmentItem}>
-                <Text style={styles.alignmentLabel}>
-                  {key.charAt(0).toUpperCase() + key.slice(1)}
-                </Text>
-                <View style={styles.alignmentBarContainer}>
-                  <View 
-                    style={[
-                      styles.alignmentBar, 
-                      { width: `${value * 100}%`, backgroundColor: getAlignmentColor(value * 100) }
-                    ]} 
-                  />
-                </View>
-                <Text style={styles.alignmentValue}>{Math.round(value * 100)}%</Text>
+          <View style={styles.businessTitleRow}>
+            <View style={styles.businessTitle}>
+              <Text style={styles.businessName}>{business.name}</Text>
+              <View style={styles.businessMeta}>
+                <Badge variant="primary" size="sm">
+                  {business.category}
+                </Badge>
+                {business.rating && (
+                  <View style={styles.ratingBadge}>
+                    <Ionicons name="star" size={12} color={Colors.accent[500]} />
+                    <Text style={styles.ratingBadgeText}>{business.rating.toFixed(1)}</Text>
+                  </View>
+                )}
               </View>
-            ))}
-          </View>
-          
-          {/* User Alignment Comparison */}
-          {Object.keys(userAlignment).length > 0 && (
-            <View style={styles.userAlignmentContainer}>
-              <Text style={styles.userAlignmentLabel}>Alignment with your values:</Text>
-              {alignmentScore && (
-                <>
-                  <View style={styles.userAlignmentBarContainer}>
-                    <View 
-                      style={[
-                        styles.userAlignmentBar, 
-                        { width: `${alignmentScore.overallAlignment}%`, backgroundColor: getAlignmentColor(alignmentScore.overallAlignment) }
-                      ]} 
-                    />
-                  </View>
-                  <View style={styles.userAlignmentInfo}>
-                    <Text style={styles.userAlignmentValue}>{alignmentScore.overallAlignment}%</Text>
-                    <Text style={styles.userAlignmentLabel}>{getAlignmentLabel(alignmentScore.overallAlignment)}</Text>
-                  </View>
-                  
-                  {/* Individual alignment breakdown */}
-                  <View style={styles.individualAlignments}>
-                    {Object.entries(alignmentScore).filter(([key]) => key !== 'overallAlignment').map(([key, value]) => (
-                      <View key={key} style={styles.individualAlignmentItem}>
-                        <Text style={styles.individualAlignmentLabel}>
-                          {key.charAt(0).toUpperCase() + key.slice(1)}
-                        </Text>
-                        <View style={styles.individualAlignmentBarContainer}>
-                          <View 
-                            style={[
-                              styles.individualAlignmentBar, 
-                              { width: `${value * 100}%`, backgroundColor: getAlignmentColor(value * 100) }
-                            ]} 
-                          />
-                        </View>
-                        <Text style={styles.individualAlignmentValue}>{Math.round(value * 100)}%</Text>
-                      </View>
-                    ))}
-                  </View>
-                </>
-              )}
             </View>
-          )}
+            <TouchableOpacity style={styles.shareButton} onPress={shareBusiness}>
+              <Ionicons name="share-outline" size={20} color={Colors.gray[600]} />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.businessDescription}>{business.description}</Text>
         </View>
 
-        {/* Donations Section */}
-        {business.donations && business.donations.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Political Donations</Text>
-            <View style={styles.donationsContainer}>
-              {business.donations.map((donation, index) => (
-                <View key={index} style={styles.donationItem}>
-                  <Text style={styles.donationOrganization}>{donation.organization}</Text>
-                  <View style={styles.donationInfo}>
-                    <Text style={styles.donationAmount}>${donation.amount.toLocaleString()}</Text>
-                    <Text style={styles.donationPoliticalLean}>{donation.politicalLean}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
+        {/* Tabs */}
+        <View style={styles.tabContainer}>
+          {(['overview', 'alignment', 'reviews', 'activity'] as const).map((tab) => (
+            <TouchableOpacity
+              key={tab}
+              style={[
+                styles.tab,
+                activeTab === tab && styles.activeTab,
+              ]}
+              onPress={() => setActiveTab(tab)}
+            >
+              <Text style={[
+                styles.tabText,
+                activeTab === tab && styles.activeTabText
+              ]}>
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Tab Content */}
+        {renderTabContent()}
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
-          <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: business.website ? '#f4511e' : '#95a5a6' }]} 
+          <Button
+            variant="primary"
+            size="lg"
             onPress={openWebsite}
             disabled={!business.website}
+            style={styles.actionButton}
           >
-            <Ionicons name="earth" size={20} color="#fff" />
-            <Text style={styles.actionButtonText}>Visit Website</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: business.latitude && business.longitude ? '#f4511e' : '#95a5a6' }]} 
+            Visit Website
+          </Button>
+          <Button
+            variant="primary"
+            size="lg"
             onPress={openMaps}
             disabled={!business.latitude || !business.longitude}
+            style={styles.actionButton}
           >
-            <Ionicons name="map" size={20} color="#fff" />
-            <Text style={styles.actionButtonText}>Get Directions</Text>
-          </TouchableOpacity>
+            Get Directions
+          </Button>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+
+      {/* Review Modal */}
+      {renderReviewModal()}
+      
+      {/* Media Upload Modal */}
+      {renderMediaUploadModal()}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 20,
-    fontSize: 16,
-    color: '#666',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#e74c3c',
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  retryButton: {
-    marginTop: 20,
-    backgroundColor: '#f4511e',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  retryButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    backgroundColor: Colors.gray[50],
   },
   businessImage: {
     width: '100%',
     height: 200,
     resizeMode: 'cover',
   },
-  content: {
-    padding: 15,
+  scrollViewContent: {
+    flex: 1,
   },
   businessHeader: {
-    marginBottom: 10,
+    padding: Spacing[5],
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray[200],
+  },
+  businessTitleRow: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start' as const,
+    marginBottom: Spacing[3],
+  },
+  businessTitle: {
+    flex: 1,
   },
   businessName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 5,
+    ...StyleMixins.heading3,
+    color: Colors.gray[900],
+    marginBottom: Spacing[2],
   },
-  businessCategory: {
-    fontSize: 16,
-    color: '#666',
+  businessMeta: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: Spacing[2],
+  },
+  ratingBadge: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: Colors.accent[50],
+    paddingHorizontal: Spacing[2],
+    paddingVertical: Spacing[1],
+    borderRadius: 12,
+  },
+  ratingBadgeText: {
+    ...StyleMixins.caption,
+    color: Colors.accent[700],
+    fontWeight: '600' as const,
+    marginLeft: Spacing[1],
+  },
+  shareButton: {
+    padding: Spacing[2],
   },
   businessDescription: {
-    fontSize: 16,
+    ...StyleMixins.body,
+    color: Colors.gray[600],
     lineHeight: 24,
-    marginBottom: 15,
-    color: '#333',
   },
-  businessInfo: {
-    marginBottom: 20,
+  tabContainer: {
+    flexDirection: 'row' as const,
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray[200],
   },
-  infoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
+  tab: {
+    flex: 1,
+    paddingVertical: Spacing[4],
+    alignItems: 'center' as const,
   },
-  infoText: {
-    marginLeft: 10,
-    fontSize: 14,
-    color: '#666',
+  activeTab: {
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.primary[600],
   },
-  section: {
-    marginBottom: 20,
+  tabText: {
+    ...StyleMixins.bodySmall,
+    color: Colors.gray[600],
+    fontWeight: '500' as const,
+  },
+  activeTabText: {
+    color: Colors.primary[600],
+    fontWeight: '600' as const,
+  },
+  tabContent: {
+    padding: Spacing[4],
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
+    ...StyleMixins.heading4,
+    color: Colors.gray[900],
+    marginBottom: Spacing[3],
   },
-  alignmentContainer: {
-    marginBottom: 15,
+  businessInfoCard: {
+    marginBottom: Spacing[4],
   },
-  alignmentItem: {
-    marginBottom: 10,
+  businessInfoGrid: {
+    gap: Spacing[4],
   },
-  alignmentLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  alignmentBarContainer: {
-    height: 8,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  alignmentBar: {
-    height: '100%',
-  },
-  alignmentValue: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 3,
-    textAlign: 'right',
-  },
-  userAlignmentContainer: {
-    marginTop: 15,
-    padding: 15,
-    backgroundColor: '#f9f9f9',
+  infoItem: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    padding: Spacing[3],
+    backgroundColor: Colors.gray[50],
     borderRadius: 8,
   },
-  userAlignmentLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  userAlignmentBarContainer: {
-    height: 10,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 5,
-    overflow: 'hidden',
-  },
-  userAlignmentBar: {
-    height: '100%',
-  },
-  userAlignmentInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 5,
-  },
-  userAlignmentValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  individualAlignments: {
-    marginTop: 15,
-  },
-  individualAlignmentItem: {
-    marginBottom: 8,
-  },
-  individualAlignmentLabel: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginBottom: 3,
-  },
-  individualAlignmentBarContainer: {
-    height: 6,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  individualAlignmentBar: {
-    height: '100%',
-  },
-  individualAlignmentValue: {
-    fontSize: 11,
-    color: '#666',
-    marginTop: 2,
-    textAlign: 'right',
-  },
-  donationsContainer: {
-    marginBottom: 10,
-  },
-  donationItem: {
-    backgroundColor: '#f9f9f9',
-    padding: 12,
+  infoIcon: {
+    width: 40,
+    height: 40,
     borderRadius: 8,
-    marginBottom: 10,
+    backgroundColor: Colors.primary[50],
+    ...StyleMixins.flexCenter,
+    marginRight: Spacing[3],
   },
-  donationOrganization: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 5,
+  infoContent: {
+    flex: 1,
   },
-  donationInfo: {
-    flexDirection: 'row',
+  infoLabel: {
+    ...StyleMixins.caption,
+    color: Colors.gray[600],
+    marginBottom: Spacing[1],
+  },
+  infoValue: {
+    ...StyleMixins.body,
+    color: Colors.gray[900],
+    fontWeight: '500' as const,
+  },
+  ratingContainer: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: Spacing[1],
+  },
+  reviewCountText: {
+    ...StyleMixins.caption,
+    color: Colors.gray[600],
+  },
+  mediaGallery: {
+    marginBottom: Spacing[4],
+  },
+  mediaGalleryHeader: {
+    flexDirection: 'row' as const,
     justifyContent: 'space-between',
+    alignItems: 'center' as const,
+    marginBottom: Spacing[3],
   },
-  donationAmount: {
-    fontSize: 14,
+  addMediaText: {
+    ...StyleMixins.caption,
+    color: Colors.primary[600],
+    marginLeft: Spacing[1],
   },
-  donationPoliticalLean: {
-    fontSize: 14,
-    color: '#666',
+  mediaItem: {
+    marginRight: Spacing[3],
+    borderRadius: 8,
+    overflow: 'hidden' as const,
+  },
+  mediaThumbnail: {
+    width: 120,
+    height: 80,
+    borderRadius: 8,
+  },
+  videoOverlay: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    ...StyleMixins.flexCenter,
+  },
+  socialMediaCard: {
+    marginBottom: Spacing[4],
+  },
+  socialMediaGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: Spacing[2],
+  },
+  socialButton: {
+    padding: Spacing[3],
+  },
+  alignmentCard: {
+    marginBottom: Spacing[4],
+  },
+  overallAlignmentContainer: {
+    alignItems: 'center' as const,
+    marginBottom: Spacing[5],
+  },
+  overallAlignmentLabel: {
+    ...StyleMixins.body,
+    color: Colors.gray[700],
+    marginBottom: Spacing[3],
+    textAlign: 'center',
+  },
+  overallAlignmentScoreText: {
+    ...StyleMixins.bodySmall,
+    color: Colors.gray[600],
+    marginTop: Spacing[2],
+    textAlign: 'center',
+  },
+  alignmentBreakdown: {
+    marginBottom: Spacing[5],
+  },
+  breakdownTitle: {
+    ...StyleMixins.body,
+    color: Colors.gray[700],
+    marginBottom: Spacing[3],
+  },
+  alignmentInsights: {
+    marginBottom: Spacing[3],
+  },
+  insightsTitle: {
+    ...StyleMixins.body,
+    color: Colors.gray[700],
+    marginBottom: Spacing[3],
+  },
+  insightItem: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    marginBottom: Spacing[2],
+  },
+  insightText: {
+    ...StyleMixins.bodySmall,
+    color: Colors.gray[600],
+    marginLeft: Spacing[2],
+  },
+  reviewsSection: {
+    marginBottom: Spacing[4],
+  },
+  reviewsHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between',
+    alignItems: 'center' as const,
+    marginBottom: Spacing[3],
+  },
+  reviewCard: {
+    marginBottom: Spacing[3],
+  },
+  reviewHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start' as const,
+    marginBottom: Spacing[3],
+  },
+  reviewAuthor: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+  },
+  reviewAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.gray[100],
+    ...StyleMixins.flexCenter,
+    marginRight: Spacing[2],
+  },
+  reviewAuthorName: {
+    ...StyleMixins.body,
+    fontWeight: '500' as const,
+    color: Colors.gray[900],
+  },
+  reviewDate: {
+    ...StyleMixins.caption,
+    color: Colors.gray[500],
+  },
+  reviewRating: {
+    alignItems: 'flex-end' as const,
+    gap: Spacing[2],
+  },
+  stars: {
+    flexDirection: 'row' as const,
+  },
+  reviewComment: {
+    ...StyleMixins.body,
+    color: Colors.gray[700],
+    lineHeight: 22,
+    marginBottom: Spacing[3],
+  },
+  reviewMedia: {
+    marginBottom: Spacing[3],
+  },
+  reviewMediaItem: {
+    marginRight: Spacing[2],
+    borderRadius: 8,
+    overflow: 'hidden' as const,
+  },
+  reviewMediaThumbnail: {
+    width: 80,
+    height: 60,
+    borderRadius: 8,
+  },
+  reviewVideoOverlay: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    ...StyleMixins.flexCenter,
+  },
+  reviewActions: {
+    flexDirection: 'row' as const,
+    justifyContent: 'flex-end' as const,
+  },
+  helpfulButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    padding: Spacing[2],
+  },
+  helpfulText: {
+    ...StyleMixins.caption,
+    color: Colors.gray[500],
+    marginLeft: Spacing[1],
+  },
+  activitySection: {
+    marginBottom: Spacing[4],
+  },
+  activityCard: {
+    marginBottom: Spacing[3],
+  },
+  activityHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between',
+    alignItems: 'center' as const,
+    marginBottom: Spacing[3],
+  },
+  activityType: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+  },
+  activityTypeText: {
+    ...StyleMixins.caption,
+    color: Colors.gray[600],
+    marginLeft: Spacing[1],
+    textTransform: 'uppercase' as const,
+  },
+  activityDate: {
+    ...StyleMixins.caption,
+    color: Colors.gray[500],
+  },
+  activityTitle: {
+    ...StyleMixins.body,
+    fontWeight: '600' as const,
+    color: Colors.gray[900],
+    marginBottom: Spacing[2],
+  },
+  activityDescription: {
+    ...StyleMixins.body,
+    color: Colors.gray[700],
+    lineHeight: 22,
+    marginBottom: Spacing[2],
+  },
+  activityAmount: {
+    ...StyleMixins.bodySmall,
+    color: Colors.gray[600],
+    marginBottom: Spacing[1],
+  },
+  activityRecipient: {
+    ...StyleMixins.bodySmall,
+    color: Colors.gray[600],
+    marginBottom: Spacing[2],
+  },
+  sourceLink: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    alignSelf: 'flex-start' as const,
+  },
+  sourceText: {
+    ...StyleMixins.bodySmall,
+    color: Colors.primary[600],
+    marginRight: Spacing[1],
   },
   actionButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-    marginBottom: 30,
+    flexDirection: 'row' as const,
+    gap: Spacing[3],
+    padding: Spacing[4],
+    backgroundColor: Colors.white,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray[200],
   },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    flex: 0.48,
+    flex: 1,
   },
-  actionButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginLeft: 8,
+  loadingContainer: {
+    flex: 1,
+    ...StyleMixins.flexCenter,
+    backgroundColor: Colors.white,
+  },
+  loadingText: {
+    ...StyleMixins.body,
+    color: Colors.gray[600],
+    marginTop: Spacing[5],
+  },
+  errorContainer: {
+    flex: 1,
+    ...StyleMixins.flexCenter,
+    padding: Spacing[5],
+    backgroundColor: Colors.white,
+  },
+  errorText: {
+    ...StyleMixins.heading4,
+    color: Colors.error[600],
+    textAlign: 'center',
+    marginTop: Spacing[4],
+  },
+  retryButton: {
+    marginTop: Spacing[4],
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: Colors.white,
+  },
+  modalHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: Spacing[4],
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray[200],
+  },
+  modalTitle: {
+    ...StyleMixins.heading3,
+    color: Colors.gray[900],
+  },
+  closeButton: {
+    padding: Spacing[2],
+  },
+  modalContent: {
+    flex: 1,
+    padding: Spacing[4],
+  },
+  ratingInput: {
+    marginBottom: Spacing[5],
+  },
+  ratingLabel: {
+    ...StyleMixins.body,
+    color: Colors.gray[700],
+    marginBottom: Spacing[3],
+  },
+  starsInput: {
+    flexDirection: 'row' as const,
+    justifyContent: 'center' as const,
+    gap: Spacing[2],
+  },
+  reviewInput: {
+    marginBottom: Spacing[5],
+  },
+  reviewInputLabel: {
+    ...StyleMixins.body,
+    color: Colors.gray[700],
+    marginBottom: Spacing[3],
+  },
+  reviewTextInput: {
+    ...StyleMixins.body,
+    color: Colors.gray[900],
+    padding: Spacing[3],
+    backgroundColor: Colors.gray[50],
+    borderRadius: 8,
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  submitButton: {
+    marginBottom: Spacing[4],
+  },
+  uploadOptions: {
+    marginBottom: Spacing[5],
+  },
+  uploadOption: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    padding: Spacing[4],
+    backgroundColor: Colors.gray[50],
+    borderRadius: 8,
+    marginBottom: Spacing[3],
+  },
+  uploadOptionText: {
+    ...StyleMixins.body,
+    color: Colors.gray[900],
+    marginLeft: Spacing[3],
+  },
+  captionInput: {
+    marginBottom: Spacing[5],
+  },
+  captionLabel: {
+    ...StyleMixins.body,
+    color: Colors.gray[700],
+    marginBottom: Spacing[3],
+  },
+  captionTextInput: {
+    ...StyleMixins.body,
+    color: Colors.gray[900],
+    padding: Spacing[3],
+    backgroundColor: Colors.gray[50],
+    borderRadius: 8,
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  uploadingContainer: {
+    ...StyleMixins.flexCenter,
+    padding: Spacing[8],
+  },
+  uploadingText: {
+    ...StyleMixins.body,
+    color: Colors.gray[600],
+    marginTop: Spacing[3],
   },
 });

@@ -1,10 +1,20 @@
-import { db } from '@/db/connection';
+import { getDB } from '@/db/connection';
 import { businesses, businessAlignments, userAlignments } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 export async function GET(request: Request, { params }: { params: { businessId: string, userId: string } }) {
   try {
     const { businessId, userId } = params;
+    const db = getDB();
+    
+    if (!db) {
+      return new Response(JSON.stringify({ error: 'Database not available' }), {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    }
 
     // Get user alignment
     const userAlignment = await db.select({

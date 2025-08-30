@@ -1,4 +1,4 @@
-import { db } from '@/db/connection';
+import { getDB } from '@/db/connection';
 import { users, userAlignments } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -10,6 +10,17 @@ export async function POST(request: Request) {
     if (!userId) {
       return new Response(JSON.stringify({ error: 'User ID is required' }), {
         status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    }
+
+    const db = getDB();
+    
+    if (!db) {
+      return new Response(JSON.stringify({ error: 'Database not available' }), {
+        status: 500,
         headers: {
           'Content-Type': 'application/json',
         },
