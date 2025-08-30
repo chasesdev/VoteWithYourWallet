@@ -605,6 +605,14 @@ export default function BusinessDetailScreen() {
 
   const renderBusinessInfo = () => (
     <Card style={styles.businessInfoCard}>
+      {/* Business Description */}
+      {business?.description && (
+        <View style={styles.descriptionContainer}>
+          <Text style={styles.descriptionTitle}>About</Text>
+          <Text style={styles.businessDescription}>{business.description}</Text>
+        </View>
+      )}
+      
       <View style={styles.businessInfoGrid}>
         {business?.phone && (
           <TouchableOpacity style={styles.infoItem} onPress={callBusiness}>
@@ -657,6 +665,29 @@ export default function BusinessDetailScreen() {
             </View>
           </View>
         )}
+        
+        {/* Always show category info as fallback */}
+        <View style={styles.infoItem}>
+          <View style={styles.infoIcon}>
+            <Ionicons name="business" size={20} color={Colors.primary[600]} />
+          </View>
+          <View style={styles.infoContent}>
+            <Text style={styles.infoLabel}>Category</Text>
+            <Text style={styles.infoValue}>{business?.category || 'Business'}</Text>
+          </View>
+        </View>
+        
+        {business?.address && (
+          <View style={styles.infoItem}>
+            <View style={styles.infoIcon}>
+              <Ionicons name="location" size={20} color={Colors.primary[600]} />
+            </View>
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>Address</Text>
+              <Text style={styles.infoValue}>{business.address}</Text>
+            </View>
+          </View>
+        )}
       </View>
     </Card>
   );
@@ -694,7 +725,19 @@ export default function BusinessDetailScreen() {
   };
 
   const renderInteractiveAlignment = () => {
-    if (!business || !alignmentScore) return null;
+    if (!business) return null;
+    
+    // Show loading state if alignment score is still being calculated
+    if (!alignmentScore) {
+      return (
+        <Card style={styles.alignmentCard}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary[600]} />
+            <Text style={styles.loadingText}>Calculating alignment match...</Text>
+          </View>
+        </Card>
+      );
+    }
 
     return (
       <Card style={styles.alignmentCard}>
@@ -1162,6 +1205,14 @@ const styles = StyleSheet.create({
     ...StyleMixins.body,
     color: Colors.gray[600],
     lineHeight: Typography.lineHeight.normal * Typography.fontSize.base,
+  },
+  descriptionContainer: {
+    marginBottom: Spacing[6],
+  },
+  descriptionTitle: {
+    ...StyleMixins.heading4,
+    marginBottom: Spacing[3],
+    color: Colors.gray[900],
   },
   tabContainer: {
     flexDirection: 'row' as const,
