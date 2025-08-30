@@ -568,7 +568,7 @@ const styles = StyleSheet.create({
     color: Colors.gray[600],
     textAlign: 'center',
     marginBottom: Spacing[6],
-    lineHeight: Typography.lineHeight.snug,
+    lineHeight: Typography.lineHeight.snug * Typography.fontSize.base,
   },
   quickSelectContainer: {
     marginBottom: Spacing[6],
@@ -601,7 +601,7 @@ const styles = StyleSheet.create({
   alignmentOptionDesc: {
     ...StyleMixins.caption,
     textAlign: 'center',
-    lineHeight: Typography.lineHeight.tight,
+    lineHeight: Typography.lineHeight.tight * Typography.fontSize.xs,
   },
   quizContainer: {
     marginBottom: Spacing[6],
@@ -622,7 +622,7 @@ const styles = StyleSheet.create({
     ...StyleMixins.heading4,
     textAlign: 'center',
     marginBottom: Spacing[6],
-    lineHeight: Typography.lineHeight.relaxed,
+    lineHeight: Typography.lineHeight.relaxed * Typography.fontSize.xl,
   },
   optionsContainer: {
     gap: Spacing[3],

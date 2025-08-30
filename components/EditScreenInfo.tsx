@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
   },
   getStartedText: {
     fontSize: 17,
-    lineHeight: Typography.lineHeight.normal,
+    lineHeight: Typography.lineHeight.normal * 17, // Using explicit fontSize 17
     textAlign: 'center',
   },
   helpContainer: {

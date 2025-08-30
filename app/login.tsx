@@ -264,7 +264,7 @@ const styles = {
     ...StyleMixins.body,
     color: Colors.gray[600],
     textAlign: 'center' as const,
-    lineHeight: Typography.lineHeight.snug,
+    lineHeight: Typography.lineHeight.snug * Typography.fontSize.base,
   },
   errorContainer: {
     flexDirection: 'row' as const,

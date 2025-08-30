@@ -619,7 +619,7 @@ const styles = StyleSheet.create({
     ...StyleMixins.body,
     color: Colors.gray[600],
     textAlign: 'center',
-    lineHeight: Typography.lineHeight.snug,
+    lineHeight: Typography.lineHeight.snug * Typography.fontSize.base,
   },
   stepIndicator: {
     flexDirection: 'row',
@@ -666,7 +666,7 @@ const styles = StyleSheet.create({
     ...StyleMixins.body,
     color: Colors.gray[600],
     textAlign: 'center',
-    lineHeight: Typography.lineHeight.snug,
+    lineHeight: Typography.lineHeight.snug * Typography.fontSize.base,
   },
   formCard: {
     padding: Spacing[6],
@@ -790,7 +790,7 @@ const styles = StyleSheet.create({
     ...StyleMixins.body,
     color: Colors.gray[600],
     textAlign: 'center',
-    lineHeight: Typography.lineHeight.snug,
+    lineHeight: Typography.lineHeight.snug * Typography.fontSize.base,
     marginBottom: Spacing[6],
   },
   completedSteps: {
@@ -854,6 +854,6 @@ const styles = StyleSheet.create({
     ...StyleMixins.body,
     color: Colors.gray[600],
     textAlign: 'center',
-    lineHeight: Typography.lineHeight.snug,
+    lineHeight: Typography.lineHeight.snug * Typography.fontSize.base,
   },
 });
