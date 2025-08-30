@@ -2,7 +2,7 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
@@ -19,10 +19,14 @@
     "expo-env.d.ts",
     "scripts/**/*.ts",
     "api/**/*.ts",
-    "db/**/*.ts"
+    "db/**/*.ts",
+    "services/**/*.ts"
   ],
   "ts-node": {
     "esm": false,
-    "experimentalSpecifierResolution": "node"
+    "experimentalSpecifierResolution": "node",
+    "compilerOptions": {
+      "module": "commonjs"
+    }
   }
 }

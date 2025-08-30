@@ -68,8 +68,8 @@ async function checkImageUrls() {
     // Summary
     console.log('📊 Summary:');
     console.log(`Total businesses: ${allBusinesses.length}`);
-    console.log(`Businesses with images: ${allBusinesses.filter(b => b.imageUrl).length}`);
-    console.log(`Businesses with logos: ${allBusinesses.filter(b => b.logoUrl).length}`);
+    console.log(`Businesses with images: ${allBusinesses.filter((b: typeof allBusinesses[0]) => b.imageUrl).length}`);
+    console.log(`Businesses with logos: ${allBusinesses.filter((b: typeof allBusinesses[0]) => b.logoUrl).length}`);
     console.log(`Potential broken images: ${brokenImages.length}`);
     console.log(`Potential broken logos: ${brokenLogos.length}`);
 

@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import PoliticalAlignmentService from '../services/politicalAlignmentService';
+import { politicalAlignmentService } from '../services/politicalAlignment';
 
 interface UserAlignment {
   liberal: number;
@@ -33,11 +33,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Invalid user ID' });
       }
 
-      const alignment = await PoliticalAlignmentService.getInstance().getUserPersonalAlignment(userIdNum);
+      const alignment = await politicalAlignmentService.getUserPersonalAlignment(userIdNum);
       
       return res.status(200).json({
         success: true,
-        data: alignment.data || null,
+        data: alignment,
       });
     } catch (error) {
       console.error('Error fetching user alignment:', error);
@@ -69,16 +69,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Invalid user ID' });
       }
 
-      const result = await PoliticalAlignmentService.getInstance().saveUserPersonalAlignment(userIdNum, alignment);
+      const success = await politicalAlignmentService.saveUserPersonalAlignment(userIdNum, alignment);
 
-      if (result.success) {
+      if (success) {
         return res.status(200).json({
           success: true,
           message: 'User alignment updated successfully',
           data: alignment,
         });
       } else {
-        return res.status(500).json({ error: result.error || 'Failed to update user alignment' });
+        return res.status(500).json({ error: 'Failed to update user alignment' });
       }
     } catch (error) {
       console.error('Error setting user alignment:', error);

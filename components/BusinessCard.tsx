@@ -15,6 +15,7 @@ interface Business {
   address?: string;
   website?: string;
   imageUrl?: string;
+  logoUrl?: string;
   alignment?: {
     liberal: number;
     conservative: number;
@@ -318,7 +319,7 @@ const compactCardStyle = {
   margin: Spacing[2],
   padding: Spacing[4],
   minHeight: 80,
-  width: '100%',
+  width: '100%' as const,
 };
 
 const compactContentStyle = {
@@ -367,7 +368,7 @@ const featuredCardStyle = {
   padding: 0,
   overflow: 'hidden' as const,
   maxWidth: 400,
-  width: '100%',
+  width: '100%' as const,
 };
 
 const featuredImageContainerStyle = {
@@ -442,7 +443,7 @@ const featuredAddressStyle = {
 const defaultCardStyle = {
   margin: Spacing[3],
   padding: Spacing[5],
-  width: '100%',
+  width: '100%' as const,
   minHeight: 140,
 };
 

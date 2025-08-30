@@ -1,5 +1,5 @@
-import { getDB } from '../db/connection';
-import { businesses, businessCategories, businessTags, businessTagRelations } from '../db/schema';
+import { getDB } from '../../db/connection';
+import { businesses, businessCategories, businessTags, businessTagRelations } from '../../db/schema';
 import { eq, and, or, ilike, desc, sql, inArray } from 'drizzle-orm';
 
 // Types for categorization

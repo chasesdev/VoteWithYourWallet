@@ -12,7 +12,12 @@
     "db:migrate": "drizzle-kit migrate",
     "setup:data-sources": "node scripts/simple-data-setup.js",
     "scrape:political:all": "npx ts-node scripts/political-data-scraper.ts all",
-    "scrape:political:business": "npx ts-node scripts/political-data-scraper.ts business"
+    "scrape:political:business": "npx ts-node scripts/political-data-scraper.ts business",
+    "scrape:national": "npx ts-node scripts/scrape-national.ts",
+    "scrape:tier1": "npx ts-node scripts/scrape-tier1.ts",
+    "scrape:tier2": "npx ts-node scripts/scrape-tier2.ts",
+    "scrape:tier3": "npx ts-node scripts/scrape-tier3.ts",
+    "scrape:tier4": "npx ts-node scripts/scrape-tier4.ts"
   },
   "jest": {
     "preset": "jest-expo"

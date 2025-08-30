@@ -25,9 +25,9 @@ import { getDB } from '../db/connection';
 import { businesses, businessCategories, businessTags, dataSources } from '../db/schema';
 import { eq, and, or, ilike, desc, sql, inArray, like } from 'drizzle-orm';
 import { dataIngestionService } from '../services/dataIngestion';
-import { dataValidationService } from '../services/dataValidationService';
-import { categorizationService } from '../services/categorizationService';
-import { politicalAlignmentService } from '../services/politicalAlignmentService';
+import { dataValidationService } from '../services/dataValidation';
+import { categorizationService } from '../services/categorization';
+import { politicalAlignmentService } from '../services/politicalAlignment';
 import { imageService } from '../services/imageService';
 
 // Data sources configuration

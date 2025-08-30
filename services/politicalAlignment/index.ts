@@ -1,5 +1,5 @@
-import { getDB } from '../db/connection';
-import { businesses, businessAlignments, donations, users, userAlignments, userBusinessAlignments } from '../db/schema';
+import { getDB } from '../../db/connection';
+import { businesses, businessAlignments, donations, users, userAlignments, userBusinessAlignments } from '../../db/schema';
 import { eq, and, or, ilike, desc, sql } from 'drizzle-orm';
 
 // Types for political alignment data
