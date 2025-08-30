@@ -1,23 +1,27 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '../../../../db/connection';
-import { reviews, users, businesses } from '../../../../db/schema';
-import { eq, and, desc } from 'drizzle-orm';
-
-interface ReviewRating {
-  rating: number;
-}
+import { getDB } from '@/db/connection';
+import { reviews, users } from '@/db/schema';
+import { eq, desc } from 'drizzle-orm';
 
 export async function GET(
-  request: NextRequest,
+  request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const businessId = parseInt(params.id);
+    const db = getDB();
     
+    if (!db) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Database connection not available' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const businessId = parseInt(params.id);
+
     if (isNaN(businessId)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid business ID' },
-        { status: 400 }
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid business ID' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -25,80 +29,82 @@ export async function GET(
     const businessReviews = await db
       .select({
         id: reviews.id,
-        userId: reviews.userId,
-        userName: users.name,
-        userAvatar: users.avatar,
         rating: reviews.rating,
         comment: reviews.comment,
-        date: reviews.createdAt,
-        helpful: reviews.helpful,
-        alignmentMatch: reviews.alignmentMatch,
-        media: reviews.media,
+        createdAt: reviews.createdAt,
+        user: {
+          id: users.id,
+          name: users.name,
+        },
       })
       .from(reviews)
       .leftJoin(users, eq(reviews.userId, users.id))
       .where(eq(reviews.businessId, businessId))
       .orderBy(desc(reviews.createdAt))
-      .limit(50);
+      .limit(20);
 
-    return NextResponse.json({
-      success: true,
-      data: businessReviews,
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        data: businessReviews,
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
   } catch (error) {
     console.error('Error fetching reviews:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch reviews' },
-      { status: 500 }
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    return new Response(
+      JSON.stringify({ success: false, error: 'Failed to fetch reviews', details: errorMessage }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 }
 
 export async function POST(
-  request: NextRequest,
+  request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const businessId = parseInt(params.id);
-    const body = await request.json();
+    const db = getDB();
     
+    if (!db) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Database connection not available' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const businessId = parseInt(params.id);
+
     if (isNaN(businessId)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid business ID' },
-        { status: 400 }
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid business ID' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    const { userId, rating, comment, media } = body;
+    const body = await request.json();
+    const { rating, comment, userId } = body;
 
-    // Validate required fields
-    if (!userId || !rating || !comment) {
-      return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
-        { status: 400 }
+    if (!rating || rating < 1 || rating > 5) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Valid rating is required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    // Check if business exists
-    const businessExists = await db
-      .select({ id: businesses.id })
-      .from(businesses)
-      .where(eq(businesses.id, businessId))
-      .limit(1);
-
-    if (businessExists.length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'Business not found' },
-        { status: 404 }
+    if (!comment || comment.trim().length === 0) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Comment is required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    // Calculate alignment match if user alignment is provided
-    let alignmentMatch = null;
-    if (body.userAlignment) {
-      // This would be calculated based on business alignment and user alignment
-      // For now, we'll use a placeholder calculation
-      alignmentMatch = Math.floor(Math.random() * 100);
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'User ID is required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
     // Create the review
@@ -108,41 +114,41 @@ export async function POST(
         businessId,
         userId,
         rating,
-        comment,
-        media: media || [],
-        alignmentMatch,
-        helpful: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        comment: comment.trim(),
+        createdAt: new Date(),
       })
       .returning();
 
-    // Update business rating (average)
-    const allReviews = await db
-      .select({ rating: reviews.rating })
-      .from(reviews)
-      .where(eq(reviews.businessId, businessId));
-
-    const avgRating = allReviews.reduce((sum: number, review: ReviewRating) => sum + review.rating, 0) / allReviews.length;
-    
-    await db
-      .update(businesses)
-      .set({
-        rating: parseFloat(avgRating.toFixed(1)),
-        reviewCount: allReviews.length,
-        updatedAt: new Date().toISOString(),
+    // Get the created review with user information
+    const createdReview = await db
+      .select({
+        id: reviews.id,
+        rating: reviews.rating,
+        comment: reviews.comment,
+        createdAt: reviews.createdAt,
+        user: {
+          id: users.id,
+          name: users.name,
+        },
       })
-      .where(eq(businesses.id, businessId));
+      .from(reviews)
+      .leftJoin(users, eq(reviews.userId, users.id))
+      .where(eq(reviews.id, newReview[0].id))
+      .limit(1);
 
-    return NextResponse.json({
-      success: true,
-      data: newReview[0],
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        data: createdReview[0],
+      }),
+      { status: 201, headers: { 'Content-Type': 'application/json' } }
+    );
   } catch (error) {
     console.error('Error creating review:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to create review' },
-      { status: 500 }
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    return new Response(
+      JSON.stringify({ success: false, error: 'Failed to create review', details: errorMessage }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 }
