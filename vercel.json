@@ -1,12 +1,6 @@
 {
   "buildCommand": "npx expo export --platform web && cp dist/server/index.html dist/ && cp -r dist/client/_expo dist/_expo && cp -r dist/client/assets dist/assets && cp dist/client/favicon.ico dist/",
   "outputDirectory": "dist",
-  "framework": null,
-  "functions": {
-    "api/**/*.ts": {
-      "runtime": "@vercel/node"
-    }
-  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/_expo/(.*)", "destination": "/_expo/$1" },
