@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { db } from '../../../db/connection';
 import { userAlignments } from '../../../db/schema';
 import { eq } from 'drizzle-orm';
 import { verifyJWT, getSession, getUserById } from '../../../utils/auth';
 
-async function getAuthenticatedUser(request: NextRequest) {
+async function getAuthenticatedUser(request: Request) {
   try {
     // Get token from cookie
-    const token = request.cookies.get('auth-token')?.value;
+    const cookieHeader = request.headers.get('cookie');
+    const token = cookieHeader?.split(';').find(c => c.trim().startsWith('auth-token='))?.split('=')[1];
     
     if (!token) {
       return null;
@@ -41,13 +41,13 @@ async function getAuthenticatedUser(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     // Authenticate user
     const auth = await getAuthenticatedUser(request);
     
     if (!auth) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return Response.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     const { user } = auth;
@@ -81,24 +81,24 @@ export async function POST(request: NextRequest) {
       });
     }
     
-    return NextResponse.json({ 
+    return Response.json({ 
       success: true,
       message: 'User alignment updated successfully',
     });
 
   } catch (error) {
     console.error('Error updating user alignment:', error);
-    return NextResponse.json({ error: 'Failed to update user alignment' }, { status: 500 });
+    return Response.json({ error: 'Failed to update user alignment' }, { status: 500 });
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
     // Authenticate user
     const auth = await getAuthenticatedUser(request);
     
     if (!auth) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return Response.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     const { user } = auth;
@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
       .limit(1);
     
     if (!alignment) {
-      return NextResponse.json({
+      return Response.json({
         alignment: {
           liberal: 0,
           conservative: 0,
@@ -122,10 +122,10 @@ export async function GET(request: NextRequest) {
       });
     }
     
-    return NextResponse.json({ alignment });
+    return Response.json({ alignment });
 
   } catch (error) {
     console.error('Error fetching user alignment:', error);
-    return NextResponse.json({ error: 'Failed to fetch user alignment' }, { status: 500 });
+    return Response.json({ error: 'Failed to fetch user alignment' }, { status: 500 });
   }
 }

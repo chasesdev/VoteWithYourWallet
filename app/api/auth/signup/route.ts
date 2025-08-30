@@ -1,4 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { createUser, createSession, createJWT, AuthError, validateEmail, validatePassword } from '../../../../utils/auth';
 
 interface SignupRequest {
@@ -7,24 +6,24 @@ interface SignupRequest {
   name: string;
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const { email, password, name }: SignupRequest = await request.json();
 
     // Validate required fields
     if (!email || !password || !name) {
-      return NextResponse.json({ error: 'Email, password, and name are required' }, { status: 400 });
+      return Response.json({ error: 'Email, password, and name are required' }, { status: 400 });
     }
 
     // Validate email format
     if (!validateEmail(email)) {
-      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+      return Response.json({ error: 'Invalid email format' }, { status: 400 });
     }
 
     // Validate password strength
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.isValid) {
-      return NextResponse.json({ 
+      return Response.json({ 
         error: 'Password requirements not met',
         details: passwordValidation.errors 
       }, { status: 400 });
@@ -32,7 +31,7 @@ export async function POST(request: NextRequest) {
 
     // Validate name length
     if (name.trim().length < 2) {
-      return NextResponse.json({ error: 'Name must be at least 2 characters long' }, { status: 400 });
+      return Response.json({ error: 'Name must be at least 2 characters long' }, { status: 400 });
     }
 
     // Create user
@@ -49,7 +48,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Create response with user data
-    const response = NextResponse.json({
+    const response = Response.json({
       success: true,
       user: {
         id: user.id,
@@ -59,14 +58,8 @@ export async function POST(request: NextRequest) {
       },
     }, { status: 201 });
 
-    // Set secure HTTP-only cookie
-    response.cookies.set('auth-token', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
-      path: '/',
-    });
+    // Set cookie header
+    response.headers.set('Set-Cookie', `auth-token=${token}; HttpOnly; Secure; SameSite=Strict; Max-Age=${7 * 24 * 60 * 60}; Path=/`);
 
     return response;
 
@@ -75,11 +68,11 @@ export async function POST(request: NextRequest) {
     
     if (error instanceof AuthError) {
       if (error.code === 'USER_EXISTS') {
-        return NextResponse.json({ error: 'An account with this email already exists' }, { status: 409 });
+        return Response.json({ error: 'An account with this email already exists' }, { status: 409 });
       }
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return Response.json({ error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

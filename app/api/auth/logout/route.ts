@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { deleteSession, verifyJWT } from '../../../../utils/auth';
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     // Get token from cookie
-    const token = request.cookies.get('auth-token')?.value;
+    const cookieHeader = request.headers.get('cookie');
+    const token = cookieHeader?.split(';').find(c => c.trim().startsWith('auth-token='))?.split('=')[1];
     
     if (token) {
       try {
@@ -22,24 +22,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Create response
-    const response = NextResponse.json({
+    const response = Response.json({
       success: true,
       message: 'Logged out successfully',
     });
 
     // Clear auth cookie
-    response.cookies.set('auth-token', '', {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      maxAge: 0,
-      path: '/',
-    });
+    response.headers.set('Set-Cookie', 'auth-token=; HttpOnly; Secure; SameSite=Strict; Max-Age=0; Path=/');
 
     return response;
 
   } catch (error) {
     console.error('Logout error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,10 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { db } from '../../../../../db/connection';
 import { businessAlignments, userAlignments } from '../../../../../db/schema';
 import { eq } from 'drizzle-orm';
 
 export async function GET(
-  request: NextRequest,
+  request: Request,
   { params }: { params: { businessId: string; userId: string } }
 ) {
   try {
@@ -12,7 +11,7 @@ export async function GET(
     const userId = parseInt(params.userId);
 
     if (isNaN(businessId) || isNaN(userId)) {
-      return NextResponse.json({ error: 'Invalid businessId or userId' }, { status: 400 });
+      return Response.json({ error: 'Invalid businessId or userId' }, { status: 400 });
     }
 
     // Get business alignment
@@ -59,7 +58,7 @@ export async function GET(
       matchPercentage = Math.max(0, 100 - (totalDifference / 10));
     }
 
-    return NextResponse.json({
+    return Response.json({
       businessAlignment: businessAlignment || {
         liberal: 0,
         conservative: 0,
@@ -79,7 +78,7 @@ export async function GET(
 
   } catch (error) {
     console.error('Error fetching alignment comparison:', error);
-    return NextResponse.json({ 
+    return Response.json({ 
       error: 'Failed to fetch alignment comparison',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });

@@ -1,4 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { authenticateUser, createSession, createJWT, AuthError } from '../../../../utils/auth';
 
 interface LoginRequest {
@@ -6,13 +5,13 @@ interface LoginRequest {
   password: string;
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const { email, password }: LoginRequest = await request.json();
 
     // Validate required fields
     if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+      return Response.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
     // Authenticate user
@@ -28,8 +27,8 @@ export async function POST(request: NextRequest) {
       email: user.email,
     });
 
-    // Create response with user data
-    const response = NextResponse.json({
+    // Create response with user data and cookie
+    const response = Response.json({
       success: true,
       user: {
         id: user.id,
@@ -39,14 +38,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Set secure HTTP-only cookie
-    response.cookies.set('auth-token', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
-      path: '/',
-    });
+    // Set cookie header
+    response.headers.set('Set-Cookie', `auth-token=${token}; HttpOnly; Secure; SameSite=Strict; Max-Age=${7 * 24 * 60 * 60}; Path=/`);
 
     return response;
 
@@ -54,9 +47,9 @@ export async function POST(request: NextRequest) {
     console.error('Login error:', error);
     
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: 401 });
+      return Response.json({ error: error.message }, { status: 401 });
     }
 
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,4 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { db } from '../../../db/connection';
 import { businesses, businessAlignments } from '../../../db/schema';
 import { eq, or, ilike, desc, and } from 'drizzle-orm';
@@ -23,7 +22,7 @@ interface BusinessWithAlignment {
   } | null;
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const q = searchParams.get('q') || '';
@@ -107,7 +106,7 @@ export async function GET(request: NextRequest) {
       },
     }));
 
-    return NextResponse.json({
+    return Response.json({
       businesses: transformedBusinesses,
       pagination: {
         page,
@@ -119,7 +118,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching businesses:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    return NextResponse.json({ 
+    return Response.json({ 
       error: 'Failed to fetch businesses', 
       details: errorMessage 
     }, { status: 500 });
