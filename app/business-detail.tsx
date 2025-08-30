@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Linking, ActivityIndicator, FlatList, Share, Alert, Modal, TextInput } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -334,7 +335,7 @@ export default function BusinessDetailScreen() {
 
   const openWebsite = () => {
     if (business?.website) {
-      Linking.openURL(business.website);
+      WebBrowser.openBrowserAsync(business.website);
     }
   };
 
