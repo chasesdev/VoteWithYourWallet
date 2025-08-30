@@ -1110,7 +1110,7 @@ export default function BusinessDetailScreen() {
           latitude={business.latitude}
           longitude={business.longitude}
           businessName={business.name}
-          height={180}
+          height={150}
         />
       )}
 

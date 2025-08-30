@@ -1,27 +1,41 @@
 import React from 'react';
-import { View, StyleSheet, Dimensions, Platform } from 'react-native';
+import { View, StyleSheet, Dimensions, Platform, TouchableOpacity, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors, Typography, Spacing, Shadows } from '../constants/design';
+import { StyleMixins } from '../utils/styles';
+import * as WebBrowser from 'expo-web-browser';
 
-// Conditional imports based on platform
-let Map: any, Marker: any, MapView: any, PROVIDER_GOOGLE: any;
+// Conditional imports following unified map practices
+let Map: any, Marker: any, NavigationControl: any, MapView: any, PROVIDER_GOOGLE: any;
+let isMapAvailable = false;
 
 if (Platform.OS === 'web') {
-  // Use react-map-gl for web
+  // Use react-map-gl/mapbox for web (same as BusinessMapUnified)
   try {
-    const mapGl = require('react-map-gl');
-    Map = mapGl.default || mapGl.Map;
-    Marker = mapGl.Marker;
-  } catch (e) {
-    console.warn('react-map-gl not available for web');
+    const mapModule = require('react-map-gl/mapbox');
+    Map = mapModule.Map;
+    Marker = mapModule.Marker;
+    NavigationControl = mapModule.NavigationControl;
+    
+    // Import mapbox styles for web
+    require('mapbox-gl/dist/mapbox-gl.css');
+    
+    isMapAvailable = !!Map;
+  } catch (error) {
+    console.log('Failed to load react-map-gl:', error);
+    isMapAvailable = false;
   }
 } else {
-  // Use react-native-maps for mobile
+  // Use react-native-maps for mobile (same as BusinessMap)
   try {
-    const rnMaps = require('react-native-maps');
-    MapView = rnMaps.default;
-    Marker = rnMaps.Marker;
-    PROVIDER_GOOGLE = rnMaps.PROVIDER_GOOGLE;
-  } catch (e) {
-    console.warn('react-native-maps not available');
+    const mapModule = require('react-native-maps');
+    MapView = mapModule.default;
+    Marker = mapModule.Marker;
+    PROVIDER_GOOGLE = mapModule.PROVIDER_GOOGLE;
+    isMapAvailable = !!MapView;
+  } catch (error) {
+    console.log('react-native-maps not available');
+    isMapAvailable = false;
   }
 }
 
@@ -33,118 +47,193 @@ interface MapHeroProps {
 }
 
 const { width: screenWidth } = Dimensions.get('window');
+const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
 
 export default function MapHero({ 
   latitude, 
   longitude, 
   businessName = 'Business Location',
-  height = 200 
+  height = 150 // Fixed height as per requirements
 }: MapHeroProps) {
-  // Render for web using Mapbox
-  if (Platform.OS === 'web' && Map) {
+
+  const openDirections = () => {
+    const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+    WebBrowser.openBrowserAsync(url);
+  };
+
+  // Web implementation using Mapbox (following BusinessMapUnified pattern)
+  if (Platform.OS === 'web' && isMapAvailable && MAPBOX_TOKEN && MAPBOX_TOKEN !== 'pk.demo.placeholder') {
     return (
       <View style={[styles.container, { height }]}>
         <Map
           initialViewState={{
             longitude,
             latitude,
-            zoom: 14
+            zoom: 15 // Focused view as per requirements
           }}
           style={{ width: '100%', height: '100%' }}
           mapStyle="mapbox://styles/mapbox/streets-v12"
-          mapboxAccessToken={process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN}
+          mapboxAccessToken={MAPBOX_TOKEN}
+          interactive={false} // Static focused view
+          attributionControl={false}
+          logoPosition="bottom-right"
         >
-          <Marker longitude={longitude} latitude={latitude}>
-            <View style={styles.markerPin}>
-              <View style={styles.markerDot} />
+          {/* Business location marker */}
+          <Marker longitude={longitude} latitude={latitude} anchor="bottom">
+            <View style={styles.businessMarker}>
+              <Ionicons name="location" size={20} color={Colors.white} />
             </View>
           </Marker>
         </Map>
+
+        {/* Get Directions Button Overlay */}
+        <TouchableOpacity style={styles.directionsButton} onPress={openDirections}>
+          <Ionicons name="navigate" size={16} color={Colors.white} />
+          <Text style={styles.directionsText}>Get Directions</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
-  // Fallback for web if Mapbox fails - use Google Maps embed
-  if (Platform.OS === 'web') {
+  // Mobile implementation using react-native-maps (following BusinessMap pattern)
+  if (Platform.OS !== 'web' && isMapAvailable) {
     return (
       <View style={[styles.container, { height }]}>
-        <iframe
-          src={`https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d3048.4037990!2d${longitude}!3d${latitude}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sus!4v1640000000000!5m2!1sen!2sus`}
-          width="100%"
-          height="100%"
-          style={{ border: 0 }}
-          allowFullScreen
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-          title={`Map showing location of ${businessName}`}
-        />
+        <MapView
+          provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+          style={styles.map}
+          region={{
+            latitude,
+            longitude,
+            latitudeDelta: 0.008, // Focused view
+            longitudeDelta: 0.008,
+          }}
+          showsUserLocation={false}
+          showsMyLocationButton={false}
+          scrollEnabled={false} // Static focused view
+          zoomEnabled={false}
+          pitchEnabled={false}
+          rotateEnabled={false}
+        >
+          {/* Business location marker */}
+          <Marker
+            coordinate={{ latitude, longitude }}
+            title={businessName}
+            description="Business Location"
+          >
+            <View style={styles.businessMarker}>
+              <Ionicons name="location" size={20} color={Colors.white} />
+            </View>
+          </Marker>
+        </MapView>
+
+        {/* Get Directions Button Overlay */}
+        <TouchableOpacity style={styles.directionsButton} onPress={openDirections}>
+          <Ionicons name="navigate" size={16} color={Colors.white} />
+          <Text style={styles.directionsText}>Get Directions</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
+  // Fallback for any platform without map support
   return (
-    <View style={[styles.container, { height }]}>
-      <MapView
-        provider={PROVIDER_GOOGLE}
-        style={styles.map}
-        region={{
-          latitude,
-          longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        }}
-        showsUserLocation={false}
-        showsMyLocationButton={false}
-        scrollEnabled={true}
-        zoomEnabled={true}
-        pitchEnabled={false}
-        rotateEnabled={false}
-      >
-        <Marker
-          coordinate={{
-            latitude,
-            longitude,
-          }}
-          title={businessName}
-          description="Business Location"
-        />
-      </MapView>
+    <View style={[styles.container, styles.fallbackContainer, { height }]}>
+      <View style={styles.fallbackContent}>
+        <Ionicons name="location" size={32} color={Colors.gray[400]} />
+        <Text style={styles.fallbackText}>{businessName}</Text>
+        <TouchableOpacity style={styles.fallbackDirectionsButton} onPress={openDirections}>
+          <Ionicons name="navigate" size={16} color={Colors.primary[600]} />
+          <Text style={styles.fallbackDirectionsText}>Get Directions</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Main container - hero section proportions
   container: {
     width: screenWidth,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 0,
+    backgroundColor: Colors.gray[100],
     overflow: 'hidden',
+    position: 'relative',
   },
+  
+  // Map styles
   map: {
     flex: 1,
     width: '100%',
     height: '100%',
   },
-  markerPin: {
-    width: 30,
-    height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
+  
+  // Business location marker (following BusinessMapUnified pattern)
+  businessMarker: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.primary[600],
+    ...StyleMixins.flexCenter,
+    ...Shadows.medium,
+    borderWidth: 2,
+    borderColor: Colors.white,
   },
-  markerDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#007AFF',
-    borderWidth: 3,
-    borderColor: 'white',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+  
+  // Get Directions button overlay
+  directionsButton: {
+    position: 'absolute',
+    bottom: Spacing[4],
+    right: Spacing[4],
+    backgroundColor: Colors.primary[600],
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing[4],
+    paddingVertical: Spacing[3],
+    borderRadius: 24,
+    ...Shadows.medium,
+  },
+  
+  directionsText: {
+    ...StyleMixins.bodySmall,
+    color: Colors.white,
+    fontWeight: '600',
+    marginLeft: Spacing[2],
+  },
+  
+  // Fallback container (when maps unavailable)
+  fallbackContainer: {
+    backgroundColor: Colors.gray[50],
+  },
+  
+  fallbackContent: {
+    flex: 1,
+    ...StyleMixins.flexCenter,
+    paddingHorizontal: Spacing[6],
+  },
+  
+  fallbackText: {
+    ...StyleMixins.body,
+    color: Colors.gray[600],
+    textAlign: 'center',
+    marginTop: Spacing[3],
+    marginBottom: Spacing[4],
+  },
+  
+  fallbackDirectionsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing[4],
+    paddingVertical: Spacing[3],
+    backgroundColor: Colors.primary[50],
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.primary[200],
+  },
+  
+  fallbackDirectionsText: {
+    ...StyleMixins.bodySmall,
+    color: Colors.primary[600],
+    fontWeight: '600',
+    marginLeft: Spacing[2],
   },
 });
