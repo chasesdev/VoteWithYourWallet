@@ -398,6 +398,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderBottomWidth: 1,
     borderBottomColor: Colors.gray[200],
+    marginBottom: Spacing[4],
   },
   section: {
     padding: Spacing[4],

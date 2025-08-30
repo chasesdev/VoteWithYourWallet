@@ -883,6 +883,7 @@ const heroButtonStyle = {
 const featuredSectionStyle = {
   padding: Spacing[6],
   backgroundColor: Colors.white,
+  marginTop: Spacing[6],
   marginBottom: Spacing[6],
 };
 
