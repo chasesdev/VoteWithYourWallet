@@ -83,23 +83,23 @@ export default function BusinessCard({
   };
   
   const getBusinessLogo = () => {
-    // Use local assets for better performance and offline availability
-    const localLogos: Record<string, any> = {
-      'Patagonia': require('../assets/images/businesses/patagonia.png'),
-      'Chick-fil-A': require('../assets/images/businesses/chick_fil_a.png'),
-      'Ben & Jerry\'s': require('../assets/images/businesses/ben___jerry_s.png'),
-      'Tesla': require('../assets/images/businesses/tesla.png'),
-      'Walmart': require('../assets/images/businesses/walmart.png'),
-    };
+    // Use database logoUrl if available, otherwise fallback to placeholder
+    if (business.logoUrl) {
+      return business.logoUrl;
+    }
     
-    // Return local asset or fallback to remote URL or placeholder
-    return localLogos[business.name] || business.imageUrl || 'https://via.placeholder.com/120x80/f3f4f6/9ca3af?text=' + business.name.charAt(0);
+    // Fallback to placeholder
+    return 'https://via.placeholder.com/120x80/f3f4f6/9ca3af?text=' + business.name.charAt(0);
   };
 
   const getImageSource = () => {
     const logo = getBusinessLogo();
-    // If it's a local asset (object), return it directly; if it's a URL string, wrap in { uri: }
-    return typeof logo === 'string' ? { uri: logo } : logo;
+    // For web, handle both relative paths and URLs
+    if (logo.startsWith('company_logos/') || logo.startsWith('assets/')) {
+      // Convert to web-accessible path
+      return { uri: `/${logo}` };
+    }
+    return { uri: logo };
   };
   
   const alignmentPercentage = getAlignmentPercentage();

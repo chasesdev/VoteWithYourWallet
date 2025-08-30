@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from '../db/connection';
+import { getDB } from '../db/connection';
 import { businesses, businessAlignments } from '../db/schema';
 import { eq, or, ilike, desc, and } from 'drizzle-orm';
 
@@ -60,6 +60,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Get businesses with their alignment data
+    const db = getDB();
     let businessesQuery = db
       .select({
         id: businesses.id,
