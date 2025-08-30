@@ -55,7 +55,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .orderBy(desc(politicalActivity.date));
 
     // Transform the data to match the expected frontend format
-    const transformedActivities = activities.map(activity => ({
+    const transformedActivities = activities.map((activity: any) => ({
       id: activity.id,
       date: activity.date,
       type: activity.type,

@@ -33,7 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Invalid user ID' });
       }
 
-      const alignment = await PoliticalAlignmentService.getUserPersonalAlignment(userIdNum);
+      const alignment = await PoliticalAlignmentService.getInstance().getUserPersonalAlignment(userIdNum);
       
       return res.status(200).json({
         success: true,
@@ -69,7 +69,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Invalid user ID' });
       }
 
-      const result = await PoliticalAlignmentService.saveUserPersonalAlignment(userIdNum, alignment);
+      const result = await PoliticalAlignmentService.getInstance().saveUserPersonalAlignment(userIdNum, alignment);
 
       if (result.success) {
         return res.status(200).json({
@@ -88,7 +88,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === 'PUT') {
     // Update user alignment (same as POST for this implementation)
-    return handler({ ...req, method: 'POST' }, res);
+    const modifiedReq = { ...req, method: 'POST' } as VercelRequest;
+    return handler(modifiedReq, res);
   }
 
   return res.status(405).json({ error: 'Method not allowed' });

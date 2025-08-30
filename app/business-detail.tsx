@@ -1098,11 +1098,13 @@ export default function BusinessDetailScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header Image */}
-      <Image 
-        source={{ uri: business.imageUrl || 'https://via.placeholder.com/400x200' }} 
-        style={styles.businessImage} 
-      />
+      {/* Header Image - only show if business has image */}
+      {business.imageUrl && business.imageUrl !== 'https://via.placeholder.com/400x200' && (
+        <Image 
+          source={{ uri: business.imageUrl }} 
+          style={styles.businessImage} 
+        />
+      )}
 
       {/* Map Hero - Shows business location */}
       {business.latitude && business.longitude && (
@@ -1110,7 +1112,7 @@ export default function BusinessDetailScreen() {
           latitude={business.latitude}
           longitude={business.longitude}
           businessName={business.name}
-          height={150}
+          height={business.imageUrl && business.imageUrl !== 'https://via.placeholder.com/400x200' ? 150 : 250}
         />
       )}
 

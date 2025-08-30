@@ -50,10 +50,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const ratingCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
       
       if (totalCount > 0) {
-        const ratingSum = reviews.reduce((sum, review) => sum + (review.rating || 0), 0);
+        const ratingSum = reviews.reduce((sum: any, review: any) => sum + (review.rating || 0), 0);
         averageRating = Math.round((ratingSum / totalCount) * 10) / 10;
         
-        reviews.forEach(review => {
+        reviews.forEach((review: any) => {
           const rating = review.rating as keyof typeof ratingCounts;
           if (rating >= 1 && rating <= 5) {
             ratingCounts[rating]++;
@@ -62,7 +62,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // Format reviews for frontend
-      const formattedReviews = reviews.map(review => ({
+      const formattedReviews = reviews.map((review: any) => ({
         id: review.id,
         userId: review.userId,
         userName: review.userName || "Anonymous",
