@@ -191,3 +191,23 @@ export const syncLogs = sqliteTable('sync_logs', {
   duration: integer('duration'), // in seconds
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });
+
+export const politicalActivity = sqliteTable('political_activity', {
+  id: integer('id').primaryKey(),
+  businessId: integer('business_id').notNull().references(() => businesses.id),
+  date: text('date').notNull(), // ISO date string (YYYY-MM-DD)
+  type: text('type').notNull(), // 'donation', 'statement', 'endorsement', 'lobbying', 'lawsuit', 'sponsorship'
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  amount: integer('amount'), // Amount in cents for donations/lobbying
+  recipient: text('recipient'), // Recipient organization/candidate
+  impact: text('impact').notNull(), // 'positive', 'negative', 'neutral'
+  sourceUrl: text('source_url'), // Link to source documentation
+  sourceType: text('source_type'), // 'news', 'fec', 'lobbying_disclosure', 'company_statement'
+  confidence: real('confidence').default(0.8).notNull(), // 0-1 confidence score in data accuracy
+  isVerified: integer('is_verified', { mode: 'boolean' }).default(false).notNull(),
+  tags: text('tags'), // JSON array of relevant tags
+  metadata: text('metadata'), // JSON for additional structured data
+  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+});

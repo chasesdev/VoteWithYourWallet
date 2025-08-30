@@ -99,6 +99,11 @@ export async function markReviewHelpful(reviewId: number) {
   });
 }
 
+// Political Activity API functions
+export async function fetchBusinessPoliticalActivity(businessId: number) {
+  return apiRequest(`/businesses/${businessId}/political-activity`);
+}
+
 // Media Upload API functions
 export async function uploadMedia(file: File, type: 'image' | 'video', caption?: string) {
   const formData = new FormData();

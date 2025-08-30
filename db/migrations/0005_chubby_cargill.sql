@@ -1,0 +1,20 @@
+CREATE TABLE `political_activity` (
+	`id` integer PRIMARY KEY NOT NULL,
+	`business_id` integer NOT NULL,
+	`date` text NOT NULL,
+	`type` text NOT NULL,
+	`title` text NOT NULL,
+	`description` text NOT NULL,
+	`amount` integer,
+	`recipient` text,
+	`impact` text NOT NULL,
+	`source_url` text,
+	`source_type` text,
+	`confidence` real DEFAULT 0.8 NOT NULL,
+	`is_verified` integer DEFAULT false NOT NULL,
+	`tags` text,
+	`metadata` text,
+	`created_at` integer,
+	`updated_at` integer,
+	FOREIGN KEY (`business_id`) REFERENCES `businesses`(`id`) ON UPDATE no action ON DELETE no action
+);

@@ -13,7 +13,8 @@
       "Bash(python3:*)",
       "Bash(npx drizzle-kit generate:*)",
       "Bash(npx drizzle-kit migrate:*)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(npm run setup:data-sources:*)"
     ],
     "deny": [],
     "ask": []

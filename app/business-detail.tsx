@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import { getBusinessAlignment, fetchBusinessReviews, submitReview, getCurrentUserId } from '../utils/api';
+import { getBusinessAlignment, fetchBusinessReviews, submitReview, getCurrentUserId, fetchBusinessPoliticalActivity } from '../utils/api';
 import { Colors, Typography, Spacing, Shadows } from '../constants/design';
 import { StyleMixins } from '../utils/styles';
 import Button from '../components/ui/Button';
@@ -153,8 +153,17 @@ export default function BusinessDetailScreen() {
           if (reviewsResponse.success && reviewsResponse.data) {
             setReviews(reviewsResponse.data as Review[]);
           } else {
-            // Fallback to sample data
+            // Fallback to sample reviews if API fails
             loadSampleData(parsedBusiness);
+          }
+          
+          // Load political activity data
+          const activityResponse = await fetchBusinessPoliticalActivity(parsedBusiness.id);
+          if (activityResponse.success && activityResponse.data) {
+            setPoliticalActivity(activityResponse.data as PoliticalActivity[]);
+          } else {
+            // Fallback to sample political activity data if no real data available
+            loadSamplePoliticalActivity();
           }
         }
       } catch (error) {
@@ -167,6 +176,51 @@ export default function BusinessDetailScreen() {
 
     loadBusinessData();
   }, []);
+
+  const loadSamplePoliticalActivity = () => {
+    const sampleActivity: PoliticalActivity[] = [
+      {
+        id: 1,
+        date: '2023-12-01',
+        type: 'donation',
+        title: 'Political Campaign Contribution',
+        description: 'Donated to progressive political campaign focused on environmental protection',
+        amount: 50000,
+        recipient: 'Green Future PAC',
+        impact: 'positive',
+        sourceUrl: 'https://example.com/source1',
+      },
+      {
+        id: 2,
+        date: '2023-10-15',
+        type: 'statement',
+        title: 'Public Policy Statement',
+        description: 'Released official statement supporting climate change legislation',
+        impact: 'positive',
+        sourceUrl: 'https://example.com/source2',
+      },
+      {
+        id: 3,
+        date: '2023-08-20',
+        type: 'endorsement',
+        title: 'Political Endorsement',
+        description: 'Endorsed candidates who support sustainable business practices',
+        impact: 'positive',
+        sourceUrl: 'https://example.com/source3',
+      },
+      {
+        id: 4,
+        date: '2023-06-10',
+        type: 'lobbying',
+        title: 'Lobbying Activity',
+        description: 'Lobbied for renewable energy tax credits',
+        amount: 25000,
+        impact: 'positive',
+        sourceUrl: 'https://example.com/source4',
+      },
+    ];
+    setPoliticalActivity(sampleActivity);
+  };
 
   const loadSampleData = (businessData: Business) => {
     // Sample reviews
@@ -211,50 +265,6 @@ export default function BusinessDetailScreen() {
       },
     ];
     setReviews(sampleReviews);
-
-    // Sample political activity
-    const sampleActivity: PoliticalActivity[] = [
-      {
-        id: 1,
-        date: '2023-12-01',
-        type: 'donation',
-        title: 'Political Campaign Contribution',
-        description: 'Donated to progressive political campaign focused on environmental protection',
-        amount: 50000,
-        recipient: 'Green Future PAC',
-        impact: 'positive',
-        sourceUrl: 'https://example.com/source1',
-      },
-      {
-        id: 2,
-        date: '2023-10-15',
-        type: 'statement',
-        title: 'Public Policy Statement',
-        description: 'Released official statement supporting climate change legislation',
-        impact: 'positive',
-        sourceUrl: 'https://example.com/source2',
-      },
-      {
-        id: 3,
-        date: '2023-08-20',
-        type: 'endorsement',
-        title: 'Political Endorsement',
-        description: 'Endorsed candidates who support sustainable business practices',
-        impact: 'positive',
-        sourceUrl: 'https://example.com/source3',
-      },
-      {
-        id: 4,
-        date: '2023-06-10',
-        type: 'lobbying',
-        title: 'Lobbying Activity',
-        description: 'Lobbied for renewable energy tax credits',
-        amount: 25000,
-        impact: 'positive',
-        sourceUrl: 'https://example.com/source4',
-      },
-    ];
-    setPoliticalActivity(sampleActivity);
   };
 
   const calculateAlignmentScore = async (businessData: Business, alignment: UserAlignment) => {
