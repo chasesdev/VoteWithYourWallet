@@ -1,13 +1,38 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Dimensions, Platform, PermissionsAndroid, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import MapView, { Marker, PROVIDER_DEFAULT, PROVIDER_GOOGLE, Region, Callout } from 'react-native-maps';
 import { Colors, Typography, Spacing, Shadows } from '../constants/design';
 import { StyleMixins } from '../utils/styles';
 import Button from './ui/Button';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
 import BusinessCard from './BusinessCard';
+
+// Conditional imports for react-native-maps (mobile only)
+let MapView: any, Marker: any, PROVIDER_DEFAULT: any, PROVIDER_GOOGLE: any, Callout: any;
+let Region: any;
+
+if (Platform.OS !== 'web') {
+  try {
+    const mapModule = require('react-native-maps');
+    MapView = mapModule.default;
+    Marker = mapModule.Marker;
+    PROVIDER_DEFAULT = mapModule.PROVIDER_DEFAULT;
+    PROVIDER_GOOGLE = mapModule.PROVIDER_GOOGLE;
+    Callout = mapModule.Callout;
+    Region = mapModule.Region;
+  } catch (error) {
+    console.log('react-native-maps not available');
+  }
+} else {
+  // Fallback Region type for web
+  Region = {
+    latitude: 37.7749,
+    longitude: -122.4194,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  };
+}
 
 interface Business {
   id: number;
@@ -58,7 +83,7 @@ export default function BusinessMap({
 }: BusinessMapProps) {
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [selectedCluster, setSelectedCluster] = useState<Cluster | null>(null);
-  const [mapRegion, setMapRegion] = useState<Region>({
+  const [mapRegion, setMapRegion] = useState<any>({
     latitude: userLocation?.latitude || 37.7749,
     longitude: userLocation?.longitude || -122.4194,
     latitudeDelta: 0.0922,
@@ -69,12 +94,56 @@ export default function BusinessMap({
   const [showClusterModal, setShowClusterModal] = useState(false);
   const [filteredBusinesses, setFilteredBusinesses] = useState<Business[]>([]);
   const [userLocationPermission, setUserLocationPermission] = useState(false);
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<any>(null);
 
   useEffect(() => {
     requestLocationPermission();
     generateClusters();
   }, [businesses, mapRegion]);
+
+  // Web fallback - show business list instead of map
+  if (Platform.OS === 'web' || !MapView) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.webFallbackContainer}>
+          <View style={styles.webFallbackHeader}>
+            <Ionicons name="map-outline" size={48} color={Colors.gray[400]} />
+            <Text style={styles.webFallbackTitle}>Map View</Text>
+            <Text style={styles.webFallbackSubtitle}>
+              Interactive map is available on mobile devices
+            </Text>
+          </View>
+          
+          <ScrollView style={styles.webBusinessList}>
+            <Text style={styles.webBusinessListTitle}>
+              {businesses.length} Businesses Found
+            </Text>
+            {businesses.map(business => (
+              <TouchableOpacity
+                key={business.id}
+                style={styles.webBusinessItem}
+                onPress={() => onBusinessSelect(business)}
+              >
+                <View style={styles.webBusinessItemContent}>
+                  <View style={styles.webBusinessIcon}>
+                    <Ionicons name="storefront" size={24} color={Colors.primary[600]} />
+                  </View>
+                  <View style={styles.webBusinessInfo}>
+                    <Text style={styles.webBusinessName}>{business.name}</Text>
+                    <Text style={styles.webBusinessCategory}>{business.category}</Text>
+                    {business.address && (
+                      <Text style={styles.webBusinessAddress}>{business.address}</Text>
+                    )}
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={Colors.gray[400]} />
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+    );
+  }
 
   const requestLocationPermission = async () => {
     if (Platform.OS === 'android') {
@@ -211,7 +280,7 @@ export default function BusinessMap({
     }
   };
 
-  const handleRegionChange = (region: Region) => {
+  const handleRegionChange = (region: any) => {
     setMapRegion(region);
   };
 
@@ -585,5 +654,75 @@ const styles = StyleSheet.create({
   businessListItemDistance: {
     ...StyleMixins.caption,
     color: Colors.primary[600],
+  },
+  // Web fallback styles
+  webFallbackContainer: {
+    flex: 1,
+    backgroundColor: Colors.gray[50],
+  },
+  webFallbackHeader: {
+    alignItems: 'center' as const,
+    padding: Spacing[8],
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray[200],
+  },
+  webFallbackTitle: {
+    ...StyleMixins.heading3,
+    color: Colors.gray[900],
+    marginTop: Spacing[4],
+  },
+  webFallbackSubtitle: {
+    ...StyleMixins.body,
+    color: Colors.gray[600],
+    textAlign: 'center' as const,
+    marginTop: Spacing[2],
+  },
+  webBusinessList: {
+    flex: 1,
+    backgroundColor: Colors.white,
+  },
+  webBusinessListTitle: {
+    ...StyleMixins.bodySmall,
+    fontWeight: '600' as const,
+    color: Colors.gray[700],
+    padding: Spacing[4],
+    backgroundColor: Colors.gray[50],
+  },
+  webBusinessItem: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray[100],
+  },
+  webBusinessItemContent: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    padding: Spacing[4],
+  },
+  webBusinessIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: Colors.primary[50],
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    marginRight: Spacing[4],
+  },
+  webBusinessInfo: {
+    flex: 1,
+  },
+  webBusinessName: {
+    ...StyleMixins.body,
+    fontWeight: '600' as const,
+    color: Colors.gray[900],
+    marginBottom: Spacing[1],
+  },
+  webBusinessCategory: {
+    ...StyleMixins.caption,
+    color: Colors.primary[600],
+    marginBottom: Spacing[1],
+  },
+  webBusinessAddress: {
+    ...StyleMixins.caption,
+    color: Colors.gray[500],
   },
 });
