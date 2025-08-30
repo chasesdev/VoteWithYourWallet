@@ -2,18 +2,18 @@
 // Professional color palette and design tokens for unicorn-level UI
 
 export const Colors = {
-  // Primary Brand Colors
+  // Primary Brand Colors (Non-partisan Purple)
   primary: {
-    50: '#eff6ff',
-    100: '#dbeafe', 
-    200: '#bfdbfe',
-    300: '#93c5fd',
-    400: '#60a5fa',
-    500: '#3b82f6', // Main primary
-    600: '#2563eb', // Darker primary
-    700: '#1d4ed8',
-    800: '#1e40af',
-    900: '#1e3a8a',
+    50: '#faf5ff',
+    100: '#f3e8ff',
+    200: '#e9d5ff',
+    300: '#d8b4fe',
+    400: '#c084fc',
+    500: '#a855f7', // Main primary
+    600: '#9333ea', // Darker primary
+    700: '#7c3aed',
+    800: '#6b21d9',
+    900: '#581c87',
   },
   
   // Secondary (Trust Green)
