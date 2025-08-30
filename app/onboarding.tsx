@@ -332,12 +332,13 @@ const styles = StyleSheet.create({
     textAlign: 'center' as const,
     marginBottom: Spacing[4],
     color: Colors.gray[900],
+    lineHeight: Typography.lineHeight.tight * Typography.fontSize['3xl'],
   } as const,
   slideSubtitle: {
     ...StyleMixins.bodyLarge,
     textAlign: 'center' as const,
     color: Colors.gray[600],
-    lineHeight: Typography.lineHeight.normal,
+    lineHeight: Typography.lineHeight.normal * Typography.fontSize.lg,
     maxWidth: 320,
   } as const,
   alignmentSlide: {
