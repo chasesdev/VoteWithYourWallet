@@ -1,31 +1,49 @@
-import { NextRequest, NextResponse } from 'next/server';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const RUNPOD_API_URL = 'https://api.runpod.ai/v2/kodxana/whisperx-worker/runsync';
 const RUNPOD_API_KEY = process.env.RUNPOD_API_KEY;
 
-export async function POST(request: NextRequest) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Add CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   try {
     // Check if API key is configured
     if (!RUNPOD_API_KEY) {
-      return NextResponse.json(
-        { success: false, error: 'RunPod API key not configured' },
-        { status: 500 }
-      );
+      return res.status(500).json({ success: false, error: 'RunPod API key not configured' });
     }
 
-    const formData = await request.formData();
-    const audioFile = formData.get('audio') as File;
+    // For Vercel, we need to handle the request differently
+    // Since req.body is already parsed, we need to handle multipart data
+    const formData = req.body;
+    const audioFile = formData?.audio;
 
     if (!audioFile) {
-      return NextResponse.json(
-        { success: false, error: 'No audio file provided' },
-        { status: 400 }
-      );
+      return res.status(400).json({ success: false, error: 'No audio file provided' });
     }
 
     // Convert the audio file to a buffer
-    const arrayBuffer = await audioFile.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    let buffer: Buffer;
+    if (typeof audioFile === 'string') {
+      // If it's already base64 encoded
+      buffer = Buffer.from(audioFile, 'base64');
+    } else if (audioFile instanceof Buffer) {
+      buffer = audioFile;
+    } else {
+      // Handle ArrayBuffer or other formats
+      buffer = Buffer.from(audioFile);
+    }
 
     // Prepare the request to RunPod WhisperX
     const runpodRequest = {
@@ -50,10 +68,7 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('RunPod API error:', errorText);
-      return NextResponse.json(
-        { success: false, error: 'Failed to transcribe audio' },
-        { status: 500 }
-      );
+      return res.status(500).json({ success: false, error: 'Failed to transcribe audio' });
     }
 
     const result = await response.json();
@@ -69,7 +84,7 @@ export async function POST(request: NextRequest) {
         .join(' ');
     }
 
-    return NextResponse.json({
+    return res.status(200).json({
       success: true,
       data: {
         transcription: transcription.trim(),
@@ -79,9 +94,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Speech-to-text error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to process speech-to-text request' },
-      { status: 500 }
-    );
+    return res.status(500).json({ success: false, error: 'Failed to process speech-to-text request' });
   }
 }

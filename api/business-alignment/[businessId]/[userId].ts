@@ -1,19 +1,50 @@
-import { getDB } from '@/db/connection';
-import { businesses, businessAlignments, userAlignments } from '@/db/schema';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getDB } from '../../../db/connection';
+import { businesses, businessAlignments, userAlignments } from '../../../db/schema';
 import { eq } from 'drizzle-orm';
 
-export async function GET(request: Request, { params }: { params: { businessId: string, userId: string } }) {
+function calculateAlignmentScore(userValue: number, businessValue: number): number {
+  // Simple correlation-based score
+  // This can be enhanced with more sophisticated algorithms
+  if (userValue === 0) return 0; // User doesn't care about this alignment
+  
+  // Normalize both values to 0-1 range
+  const normalizedUser = Math.min(userValue, 100) / 100;
+  const normalizedBusiness = Math.min(businessValue, 100) / 100;
+  
+  // Calculate the absolute difference
+  const difference = Math.abs(normalizedUser - normalizedBusiness);
+  
+  // Return a score that is 1 when they match exactly and 0 when they are opposite
+  return 1 - difference;
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Add CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   try {
-    const { businessId, userId } = params;
+    const { businessId, userId } = req.query;
+    
+    if (!businessId || !userId || typeof businessId !== 'string' || typeof userId !== 'string') {
+      return res.status(400).json({ error: 'Invalid businessId or userId' });
+    }
+
     const db = getDB();
     
     if (!db) {
-      return new Response(JSON.stringify({ error: 'Database not available' }), {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      return res.status(500).json({ error: 'Database not available' });
     }
 
     // Get user alignment
@@ -28,12 +59,7 @@ export async function GET(request: Request, { params }: { params: { businessId: 
     .where(eq(userAlignments.userId, parseInt(userId)));
     
     if (!userAlignment.length) {
-      return new Response(JSON.stringify({ error: 'User alignment not found' }), {
-        status: 404,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      return res.status(404).json({ error: 'User alignment not found' });
     }
     
     // Get business alignment
@@ -48,12 +74,7 @@ export async function GET(request: Request, { params }: { params: { businessId: 
     .where(eq(businessAlignments.businessId, parseInt(businessId)));
     
     if (!businessAlignment.length) {
-      return new Response(JSON.stringify({ error: 'Business alignment not found' }), {
-        status: 404,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      return res.status(404).json({ error: 'Business alignment not found' });
     }
     
     const user = userAlignment[0];
@@ -80,37 +101,12 @@ export async function GET(request: Request, { params }: { params: { businessId: 
     
     const overallAlignment = totalWeight > 0 ? totalAlignment / totalWeight : 0;
     
-    return new Response(JSON.stringify({
+    return res.status(200).json({
       alignmentScores,
       overallAlignment: Math.round(overallAlignment * 100),
-    }), {
-      headers: {
-        'Content-Type': 'application/json',
-      },
     });
   } catch (error) {
     console.error('Error calculating business alignment:', error);
-    return new Response(JSON.stringify({ error: 'Failed to calculate business alignment' }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    return res.status(500).json({ error: 'Failed to calculate business alignment' });
   }
-}
-
-function calculateAlignmentScore(userValue: number, businessValue: number): number {
-  // Simple correlation-based score
-  // This can be enhanced with more sophisticated algorithms
-  if (userValue === 0) return 0; // User doesn't care about this alignment
-  
-  // Normalize both values to 0-1 range
-  const normalizedUser = Math.min(userValue, 100) / 100;
-  const normalizedBusiness = Math.min(businessValue, 100) / 100;
-  
-  // Calculate the absolute difference
-  const difference = Math.abs(normalizedUser - normalizedBusiness);
-  
-  // Return a score that is 1 when they match exactly and 0 when they are opposite
-  return 1 - difference;
 }

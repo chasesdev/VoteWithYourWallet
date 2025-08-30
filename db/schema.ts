@@ -50,3 +50,12 @@ export const donations = sqliteTable('donations', {
   politicalLean: text('political_lean').notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });
+
+export const reviews = sqliteTable('reviews', {
+  id: integer('id').primaryKey(),
+  businessId: integer('business_id').notNull().references(() => businesses.id),
+  userId: integer('user_id').notNull().references(() => users.id),
+  rating: integer('rating').notNull(),
+  comment: text('comment').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+});
