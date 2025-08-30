@@ -86,8 +86,8 @@ export default function BusinessCard({
     // Use local assets for better performance and offline availability
     const localLogos: Record<string, any> = {
       'Patagonia': require('../assets/images/businesses/patagonia.png'),
-      'Chick-fil-A': require('../assets/images/businesses/chick-fil-a.png'),
-      'Ben & Jerry\'s': require('../assets/images/businesses/ben-jerrys.png'),
+      'Chick-fil-A': require('../assets/images/businesses/chick_fil_a.png'),
+      'Ben & Jerry\'s': require('../assets/images/businesses/ben___jerry_s.png'),
       'Tesla': require('../assets/images/businesses/tesla.png'),
       'Walmart': require('../assets/images/businesses/walmart.png'),
     };
