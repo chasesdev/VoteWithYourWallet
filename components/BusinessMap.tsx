@@ -97,10 +97,10 @@ export default function BusinessMap({
   const mapRef = useRef<any>(null);
 
   useEffect(() => {
-    if (Platform.OS !== 'web') {
+    if (Platform.OS !== 'web' && MapView) {
       requestLocationPermission();
+      generateClusters();
     }
-    generateClusters();
   }, [businesses, mapRegion]);
 
   // Web fallback - show business list instead of map
