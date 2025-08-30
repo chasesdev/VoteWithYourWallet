@@ -1,6 +1,6 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getDB } from '../../db/connection';
-import { businesses, businessAlignments } from '../../db/schema';
+import { NextRequest, NextResponse } from 'next/server';
+import { db } from '../../../db/connection';
+import { businesses, businessAlignments } from '../../../db/schema';
 import { eq, or, ilike, desc, and } from 'drizzle-orm';
 
 interface BusinessWithAlignment {
@@ -23,46 +23,28 @@ interface BusinessWithAlignment {
   } | null;
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
+export async function GET(request: NextRequest) {
   try {
-    const db = getDB();
-    
-    if (!db) {
-      return res.status(500).json({ error: 'Database connection not available' });
-    }
-
-    const { q = '', category = '', page = '1', limit = '10' } = req.query;
-    const query = q as string;
-    const pageNum = parseInt(page as string);
-    const limitNum = parseInt(limit as string);
+    const { searchParams } = new URL(request.url);
+    const q = searchParams.get('q') || '';
+    const category = searchParams.get('category') || '';
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
 
     // Build the query conditions
     let whereConditions: any[] = [];
     
-    if (query) {
+    if (q) {
       whereConditions.push(
         or(
-          ilike(businesses.name, `%${query}%`),
-          ilike(businesses.description, `%${query}%`)
+          ilike(businesses.name, `%${q}%`),
+          ilike(businesses.description, `%${q}%`)
         )
       );
     }
     
     if (category && category !== 'All') {
-      whereConditions.push(eq(businesses.category, category as string));
+      whereConditions.push(eq(businesses.category, category));
     }
 
     // Get businesses with their alignment data
@@ -110,8 +92,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Apply pagination and ordering
     const paginatedBusinesses = await businessesQuery
       .orderBy(desc(businesses.createdAt))
-      .limit(limitNum)
-      .offset((pageNum - 1) * limitNum);
+      .limit(limit)
+      .offset((page - 1) * limit);
 
     // Transform the data to match the expected format
     const transformedBusinesses = (paginatedBusinesses as BusinessWithAlignment[]).map((business: BusinessWithAlignment) => ({
@@ -125,17 +107,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     }));
 
-    return res.status(200).json({
+    return NextResponse.json({
       businesses: transformedBusinesses,
       pagination: {
-        page: pageNum,
-        limit: limitNum,
+        page,
+        limit,
         total: totalCount,
       }
     });
+
   } catch (error) {
     console.error('Error fetching businesses:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    return res.status(500).json({ error: 'Failed to fetch businesses', details: errorMessage });
+    return NextResponse.json({ 
+      error: 'Failed to fetch businesses', 
+      details: errorMessage 
+    }, { status: 500 });
   }
 }

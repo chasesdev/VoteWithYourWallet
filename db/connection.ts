@@ -3,10 +3,10 @@ import { createClient } from '@libsql/client';
 import * as schema from './schema';
 
 // Create database connection only when environment variables are available
-let db: any = null;
+let dbInstance: any = null;
 
-export function getDB() {
-  if (!db) {
+function initializeDB() {
+  if (!dbInstance) {
     console.log('Database connection requested...');
     console.log('TURSO_DATABASE_URL:', process.env.TURSO_DATABASE_URL ? 'SET' : 'NOT SET');
     console.log('TURSO_AUTH_TOKEN:', process.env.TURSO_AUTH_TOKEN ? 'SET' : 'NOT SET');
@@ -20,7 +20,7 @@ export function getDB() {
         url: process.env.TURSO_DATABASE_URL,
         authToken: process.env.TURSO_AUTH_TOKEN,
       });
-      db = drizzle(client, { schema });
+      dbInstance = drizzle(client, { schema });
       console.log('Turso database connection established');
     } else if (process.env.DATABASE_URL) {
       console.log('Using local SQLite database...');
@@ -28,11 +28,18 @@ export function getDB() {
       const client = createClient({
         url: process.env.DATABASE_URL,
       });
-      db = drizzle(client, { schema });
+      dbInstance = drizzle(client, { schema });
       console.log('Local SQLite database connection established');
     } else {
       console.error('No database configuration found in environment variables');
     }
   }
-  return db;
+  return dbInstance;
 }
+
+export function getDB() {
+  return initializeDB();
+}
+
+// Export a default db instance for easier importing
+export const db = initializeDB();

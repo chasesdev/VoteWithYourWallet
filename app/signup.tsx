@@ -7,7 +7,7 @@ import Input from '../components/ui/Input';
 import Card from '../components/ui/Card';
 import { Colors, Typography, Spacing } from '../constants/design';
 import { StyleMixins } from '../utils/styles';
-import { validateEmail, validatePassword } from '../utils/auth';
+import { validateEmail, validatePassword } from '../utils/validation';
 
 interface SignupForm {
   name: string;
