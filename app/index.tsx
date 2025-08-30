@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, ScrollView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
@@ -373,7 +373,11 @@ export default function HomeScreen() {
         
         <View style={logoContainerStyle}>
           <View style={logoIconContainerStyle}>
-            <Ionicons name="wallet" size={32} color={Colors.primary[600]} />
+            <Image 
+              source={require('../logo.png')} 
+              style={logoImageStyle}
+              resizeMode="contain"
+            />
             {isAuthenticated && (
               <Ionicons 
                 name="checkmark-circle" 
@@ -741,6 +745,11 @@ const logoContainerStyle = {
 const logoIconContainerStyle = {
   position: 'relative' as const,
   marginRight: Spacing[2],
+};
+
+const logoImageStyle = {
+  width: 32,
+  height: 32,
 };
 
 const logoCheckmarkStyle = {
