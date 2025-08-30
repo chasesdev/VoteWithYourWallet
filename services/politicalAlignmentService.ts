@@ -1,5 +1,5 @@
 import { getDB } from '../db/connection';
-import { businesses, businessAlignments, donations, users, userAlignments } from '../db/schema';
+import { businesses, businessAlignments, donations, users, userAlignments, userBusinessAlignments } from '../db/schema';
 import { eq, and, or, ilike, desc, sql } from 'drizzle-orm';
 
 // Types for political alignment data
@@ -418,7 +418,7 @@ class PoliticalAlignmentService {
     }
   }
 
-  // User contribution: Submit political alignment data
+  // User contribution: Submit political alignment data for a business
   async submitUserAlignment(
     userId: number,
     businessId: number,
@@ -428,8 +428,8 @@ class PoliticalAlignmentService {
     if (!this.db) return false;
 
     try {
-      // Save user alignment
-      await this.db.insert(userAlignments).values({
+      // Save user's assessment of business alignment
+      await this.db.insert(userBusinessAlignments).values({
         userId,
         businessId,
         liberal: alignment.liberal,
@@ -437,8 +437,20 @@ class PoliticalAlignmentService {
         libertarian: alignment.libertarian,
         green: alignment.green,
         centrist: alignment.centrist,
+        confidence,
         createdAt: new Date(),
         updatedAt: new Date()
+      }).onConflictDoUpdate({
+        target: [userBusinessAlignments.userId, userBusinessAlignments.businessId],
+        set: {
+          liberal: alignment.liberal,
+          conservative: alignment.conservative,
+          libertarian: alignment.libertarian,
+          green: alignment.green,
+          centrist: alignment.centrist,
+          confidence,
+          updatedAt: new Date()
+        }
       });
 
       // Update business alignment based on user contributions
@@ -459,8 +471,8 @@ class PoliticalAlignmentService {
       // Get all user alignments for this business
       const userAlignmentsData = await this.db
         .select()
-        .from(userAlignments)
-        .where(eq(userAlignments.userId, businessId));
+        .from(userBusinessAlignments)
+        .where(eq(userBusinessAlignments.businessId, businessId));
 
       if (userAlignmentsData.length === 0) return;
 
@@ -508,6 +520,96 @@ class PoliticalAlignmentService {
       });
     } catch (error) {
       console.error('Error updating business alignment from users:', error);
+    }
+  }
+
+  // Get user's alignment submissions for businesses
+  async getUserAlignmentSubmissions(userId: number): Promise<any[]> {
+    if (!this.db) return [];
+
+    try {
+      const submissions = await this.db
+        .select({
+          businessId: userBusinessAlignments.businessId,
+          businessName: businesses.name,
+          liberal: userBusinessAlignments.liberal,
+          conservative: userBusinessAlignments.conservative,
+          libertarian: userBusinessAlignments.libertarian,
+          green: userBusinessAlignments.green,
+          centrist: userBusinessAlignments.centrist,
+          confidence: userBusinessAlignments.confidence,
+          createdAt: userBusinessAlignments.createdAt,
+          updatedAt: userBusinessAlignments.updatedAt,
+        })
+        .from(userBusinessAlignments)
+        .innerJoin(businesses, eq(userBusinessAlignments.businessId, businesses.id))
+        .where(eq(userBusinessAlignments.userId, userId))
+        .orderBy(desc(userBusinessAlignments.updatedAt));
+
+      return submissions;
+    } catch (error) {
+      console.error('Error getting user alignment submissions:', error);
+      return [];
+    }
+  }
+
+  // Get user's personal political alignment
+  async getUserPersonalAlignment(userId: number): Promise<PoliticalAlignment | null> {
+    if (!this.db) return null;
+
+    try {
+      const result = await this.db
+        .select()
+        .from(userAlignments)
+        .where(eq(userAlignments.userId, userId))
+        .limit(1);
+
+      if (result.length === 0) return null;
+
+      const alignment = result[0];
+      return {
+        liberal: alignment.liberal,
+        conservative: alignment.conservative,
+        libertarian: alignment.libertarian,
+        green: alignment.green,
+        centrist: alignment.centrist
+      };
+    } catch (error) {
+      console.error('Error getting user personal alignment:', error);
+      return null;
+    }
+  }
+
+  // Save user's personal political alignment
+  async saveUserPersonalAlignment(userId: number, alignment: PoliticalAlignment): Promise<boolean> {
+    if (!this.db) return false;
+
+    try {
+      await this.db.insert(userAlignments).values({
+        userId,
+        liberal: alignment.liberal,
+        conservative: alignment.conservative,
+        libertarian: alignment.libertarian,
+        green: alignment.green,
+        centrist: alignment.centrist,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).onConflictDoUpdate({
+        target: userAlignments.userId,
+        set: {
+          liberal: alignment.liberal,
+          conservative: alignment.conservative,
+          libertarian: alignment.libertarian,
+          green: alignment.green,
+          centrist: alignment.centrist,
+          updatedAt: new Date()
+        }
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error saving user personal alignment:', error);
+      return false;
     }
   }
 

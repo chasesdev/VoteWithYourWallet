@@ -1,4 +1,4 @@
-import { sqliteTable, integer, text, real } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, integer, text, real, unique } from 'drizzle-orm/sqlite-core';
 
 export const businesses = sqliteTable('businesses', {
   id: integer('id').primaryKey(),
@@ -129,6 +129,22 @@ export const businessAlignments = sqliteTable('business_alignments', {
   lastUpdated: integer('last_updated', { mode: 'timestamp' }).$defaultFn(() => new Date()),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });
+
+export const userBusinessAlignments = sqliteTable('user_business_alignments', {
+  id: integer('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id),
+  businessId: integer('business_id').notNull().references(() => businesses.id),
+  liberal: real('liberal').default(0).notNull(),
+  conservative: real('conservative').default(0).notNull(),
+  libertarian: real('libertarian').default(0).notNull(),
+  green: real('green').default(0).notNull(),
+  centrist: real('centrist').default(0).notNull(),
+  confidence: real('confidence').default(0.5).notNull(), // User confidence in their assessment
+  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+}, (table) => ({
+  userBusinessUnique: unique().on(table.userId, table.businessId),
+}));
 
 export const donations = sqliteTable('donations', {
   id: integer('id').primaryKey(),
