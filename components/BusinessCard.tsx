@@ -114,7 +114,7 @@ export default function BusinessCard({
                 resizeMode="contain"
               />
               <View style={{ flex: 1, marginLeft: Spacing[3] }}>
-                <Text style={compactNameStyle} numberOfLines={1}>
+                <Text style={compactNameStyle} numberOfLines={2}>
                   {business.name}
                 </Text>
                 <View style={compactCategoryContainerStyle}>
@@ -226,7 +226,7 @@ export default function BusinessCard({
           
           <View style={defaultBusinessInfoStyle}>
             <View style={defaultTitleRowStyle}>
-              <Text style={defaultNameStyle} numberOfLines={1}>
+              <Text style={defaultNameStyle} numberOfLines={2}>
                 {business.name}
               </Text>
               {userAlignment && business.alignment && (
@@ -304,6 +304,7 @@ const compactNameStyle = {
   ...StyleMixins.body,
   fontWeight: '600' as const,
   color: Colors.gray[900],
+  lineHeight: 18,
 };
 
 const compactCategoryContainerStyle = {
@@ -429,6 +430,7 @@ const defaultNameStyle = {
   ...StyleMixins.heading4,
   flex: 1,
   marginRight: Spacing[2],
+  lineHeight: 22,
 };
 
 const defaultCategoryRowStyle = {

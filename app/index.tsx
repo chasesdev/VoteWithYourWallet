@@ -667,14 +667,15 @@ const heroContentStyle = {
 
 const heroHeaderStyle = {
   alignItems: 'center' as const,
-  marginBottom: Spacing[8],
+  marginBottom: Spacing[10],
+  paddingHorizontal: Spacing[4],
 };
 
 const heroTitleStyle = {
   ...StyleMixins.heading1,
   color: Colors.white,
   textAlign: 'center' as const,
-  marginBottom: Spacing[4],
+  marginBottom: Spacing[6],
   lineHeight: 48,
 };
 
@@ -682,7 +683,9 @@ const heroSubtitleStyle = {
   ...StyleMixins.bodyLarge,
   color: Colors.primary[100],
   textAlign: 'center' as const,
-  maxWidth: 320,
+  maxWidth: 360,
+  lineHeight: 24,
+  paddingHorizontal: Spacing[2],
 };
 
 const heroStatsStyle = {
