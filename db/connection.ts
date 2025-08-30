@@ -6,6 +6,11 @@ import * as schema from './schema';
 let dbInstance: any = null;
 
 function initializeDB() {
+  // Don't initialize DB in client-side builds
+  if (typeof window !== 'undefined') {
+    throw new Error('Database connection cannot be used on client side');
+  }
+
   if (!dbInstance) {
     console.log('Database connection requested...');
     console.log('TURSO_DATABASE_URL:', process.env.TURSO_DATABASE_URL ? 'SET' : 'NOT SET');
@@ -32,6 +37,7 @@ function initializeDB() {
       console.log('Local SQLite database connection established');
     } else {
       console.error('No database configuration found in environment variables');
+      throw new Error('No database configuration available');
     }
   }
   return dbInstance;
@@ -41,5 +47,12 @@ export function getDB() {
   return initializeDB();
 }
 
-// Export a default db instance for easier importing
-export const db = initializeDB();
+// Safe export that only initializes on server side
+export let db: any = null;
+if (typeof window === 'undefined') {
+  try {
+    db = initializeDB();
+  } catch (error) {
+    console.error('Failed to initialize database:', error);
+  }
+}

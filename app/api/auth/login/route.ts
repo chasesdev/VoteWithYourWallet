@@ -11,7 +11,13 @@ export async function POST(request: Request) {
 
     // Validate required fields
     if (!email || !password) {
-      return Response.json({ error: 'Email and password are required' }, { status: 400 });
+      return new Response(
+        JSON.stringify({ error: 'Email and password are required' }), 
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Authenticate user
@@ -27,19 +33,25 @@ export async function POST(request: Request) {
       email: user.email,
     });
 
-    // Create response with user data and cookie
-    const response = Response.json({
-      success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        isVerified: user.isVerified,
-      },
-    });
-
-    // Set cookie header
-    response.headers.set('Set-Cookie', `auth-token=${token}; HttpOnly; Secure; SameSite=Strict; Max-Age=${7 * 24 * 60 * 60}; Path=/`);
+    // Create response with user data
+    const response = new Response(
+      JSON.stringify({
+        success: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          isVerified: user.isVerified,
+        },
+      }),
+      { 
+        status: 200,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Set-Cookie': `auth-token=${token}; HttpOnly; Secure; SameSite=Strict; Max-Age=${7 * 24 * 60 * 60}; Path=/`
+        }
+      }
+    );
 
     return response;
 
@@ -47,9 +59,21 @@ export async function POST(request: Request) {
     console.error('Login error:', error);
     
     if (error instanceof AuthError) {
-      return Response.json({ error: error.message }, { status: 401 });
+      return new Response(
+        JSON.stringify({ error: error.message }), 
+        { 
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
     }
 
-    return Response.json({ error: 'Internal server error' }, { status: 500 });
+    return new Response(
+      JSON.stringify({ error: 'Internal server error' }), 
+      { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
   }
 }
