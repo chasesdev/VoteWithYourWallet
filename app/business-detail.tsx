@@ -727,13 +727,41 @@ export default function BusinessDetailScreen() {
   const renderInteractiveAlignment = () => {
     if (!business) return null;
     
-    // Show loading state if alignment score is still being calculated
+    // Check if business has alignment data
+    if (!business.alignment) {
+      return (
+        <Card style={styles.alignmentCard}>
+          <Text style={styles.sectionTitle}>Political Alignment</Text>
+          <View style={styles.noAlignmentContainer}>
+            <Ionicons name="information-circle" size={48} color={Colors.gray[400]} />
+            <Text style={styles.noAlignmentTitle}>No alignment data available</Text>
+            <Text style={styles.noAlignmentText}>
+              This business hasn't been analyzed for political alignment yet.
+            </Text>
+          </View>
+        </Card>
+      );
+    }
+    
+    // Show alignment data even without user comparison
     if (!alignmentScore) {
       return (
         <Card style={styles.alignmentCard}>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.primary[600]} />
-            <Text style={styles.loadingText}>Calculating alignment match...</Text>
+          <Text style={styles.sectionTitle}>Political Alignment</Text>
+          
+          <View style={styles.alignmentBreakdown}>
+            <Text style={styles.breakdownTitle}>Business Political Position</Text>
+            <AlignmentSpectrum
+              alignments={business.alignment}
+              userAlignments={undefined}
+              compact={false}
+            />
+          </View>
+          
+          <View style={styles.noUserAlignmentContainer}>
+            <Text style={styles.noUserAlignmentText}>
+              Set your political preferences to see how well this business matches your values.
+            </Text>
           </View>
         </Card>
       );
@@ -1213,6 +1241,35 @@ const styles = StyleSheet.create({
     ...StyleMixins.heading4,
     marginBottom: Spacing[3],
     color: Colors.gray[900],
+  },
+  noAlignmentContainer: {
+    ...StyleMixins.flexCenter,
+    paddingVertical: Spacing[8],
+    gap: Spacing[4],
+  },
+  noAlignmentTitle: {
+    ...StyleMixins.heading4,
+    color: Colors.gray[600],
+    textAlign: 'center' as const,
+  },
+  noAlignmentText: {
+    ...StyleMixins.body,
+    color: Colors.gray[500],
+    textAlign: 'center' as const,
+    maxWidth: 280,
+    lineHeight: Typography.lineHeight.normal * Typography.fontSize.base,
+  },
+  noUserAlignmentContainer: {
+    backgroundColor: Colors.primary[50],
+    padding: Spacing[4],
+    borderRadius: 12,
+    marginTop: Spacing[4],
+  },
+  noUserAlignmentText: {
+    ...StyleMixins.body,
+    color: Colors.primary[700],
+    textAlign: 'center' as const,
+    lineHeight: Typography.lineHeight.normal * Typography.fontSize.base,
   },
   tabContainer: {
     flexDirection: 'row' as const,
