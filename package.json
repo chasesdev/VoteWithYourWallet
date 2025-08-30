@@ -13,7 +13,11 @@
     "setup:data-sources": "node scripts/simple-data-setup.js",
     "scrape:political:all": "npx ts-node scripts/political-data-scraper.ts all",
     "scrape:political:business": "npx ts-node scripts/political-data-scraper.ts business",
-    "scrape:national": "npx ts-node scripts/scrape-national.ts",
+    "scrape:national": "npx tsx scripts/runNationalScraping.ts",
+    "scrape:national:gentle": "npx tsx scripts/runNationalScrapingGentle.ts",
+    "scrape:free": "npx tsx scripts/freeDataScraper.ts",
+    "scrape:free:national": "npx tsx scripts/freeDataScraperNational.ts",
+    "test:free:scraper": "npx tsx scripts/testFreeScraperSingleState.ts",
     "scrape:tier1": "npx ts-node scripts/scrape-tier1.ts",
     "scrape:tier2": "npx ts-node scripts/scrape-tier2.ts",
     "scrape:tier3": "npx ts-node scripts/scrape-tier3.ts",
@@ -74,6 +78,7 @@
     "jest-expo": "~53.0.10",
     "next": "^15.0.0",
     "react-test-renderer": "19.0.0",
+    "tsx": "^4.20.5",
     "typescript": "~5.8.3"
   },
   "private": true
