@@ -12,6 +12,7 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import AlignmentBadge, { AlignmentSpectrum } from '../components/ui/AlignmentBadge';
+import MapHero from '../components/MapHero';
 
 interface Business {
   id: number;
@@ -1102,6 +1103,16 @@ export default function BusinessDetailScreen() {
         source={{ uri: business.imageUrl || 'https://via.placeholder.com/400x200' }} 
         style={styles.businessImage} 
       />
+
+      {/* Map Hero - Shows business location */}
+      {business.latitude && business.longitude && (
+        <MapHero
+          latitude={business.latitude}
+          longitude={business.longitude}
+          businessName={business.name}
+          height={180}
+        />
+      )}
 
       {/* Content */}
       <ScrollView style={styles.scrollViewContent}>
