@@ -304,7 +304,7 @@ const compactNameStyle = {
   ...StyleMixins.body,
   fontWeight: '600' as const,
   color: Colors.gray[900],
-  lineHeight: 18,
+  lineHeight: Typography.lineHeight.tight,
 };
 
 const compactCategoryContainerStyle = {
@@ -369,7 +369,7 @@ const featuredCategoryContainerStyle = {
 
 const featuredDescriptionStyle = {
   ...StyleMixins.body,
-  lineHeight: 24,
+  lineHeight: Typography.lineHeight.normal,
   marginBottom: Spacing[4],
 };
 
@@ -430,7 +430,7 @@ const defaultNameStyle = {
   ...StyleMixins.heading4,
   flex: 1,
   marginRight: Spacing[2],
-  lineHeight: 22,
+  lineHeight: Typography.lineHeight.snug,
 };
 
 const defaultCategoryRowStyle = {
@@ -440,7 +440,7 @@ const defaultCategoryRowStyle = {
 
 const defaultDescriptionStyle = {
   ...StyleMixins.body,
-  lineHeight: 22,
+  lineHeight: Typography.lineHeight.snug,
   color: Colors.gray[600],
 };
 

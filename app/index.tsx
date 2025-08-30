@@ -834,7 +834,7 @@ const heroTitleStyle = {
   color: Colors.white,
   textAlign: 'center' as const,
   marginBottom: Spacing[6],
-  lineHeight: 48,
+  lineHeight: Typography.lineHeight.tight,
 };
 
 const heroSubtitleStyle = {
@@ -842,7 +842,7 @@ const heroSubtitleStyle = {
   color: Colors.primary[100],
   textAlign: 'center' as const,
   maxWidth: 360,
-  lineHeight: 24,
+  lineHeight: Typography.lineHeight.normal,
   paddingHorizontal: Spacing[2],
 };
 

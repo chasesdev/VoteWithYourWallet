@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
     ...StyleMixins.bodyLarge,
     textAlign: 'center' as const,
     color: Colors.gray[600],
-    lineHeight: 24,
+    lineHeight: Typography.lineHeight.normal,
     maxWidth: 320,
   } as const,
   alignmentSlide: {

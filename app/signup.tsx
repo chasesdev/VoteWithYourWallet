@@ -324,7 +324,7 @@ const styles = {
     ...StyleMixins.body,
     color: Colors.gray[600],
     textAlign: 'center' as const,
-    lineHeight: 22,
+    lineHeight: Typography.lineHeight.snug,
   },
   errorContainer: {
     flexDirection: 'row' as const,
@@ -351,7 +351,7 @@ const styles = {
   termsText: {
     ...StyleMixins.caption,
     color: Colors.gray[600],
-    lineHeight: 18,
+    lineHeight: Typography.lineHeight.tight,
     textAlign: 'center' as const,
   },
   linkText: {

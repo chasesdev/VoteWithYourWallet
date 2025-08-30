@@ -422,7 +422,7 @@ const styles = {
     ...StyleMixins.bodySmall,
     color: Colors.gray[700],
     marginBottom: Spacing[2],
-    lineHeight: 18,
+    lineHeight: Typography.lineHeight.tight,
   },
   popupAddress: {
     ...StyleMixins.caption,
@@ -469,7 +469,7 @@ const styles = {
     ...StyleMixins.body,
     color: Colors.gray[600],
     textAlign: 'center' as const,
-    lineHeight: 24,
+    lineHeight: Typography.lineHeight.normal,
   },
   // Fallback styles
   fallbackContainer: {

@@ -1161,7 +1161,7 @@ const styles = StyleSheet.create({
   businessDescription: {
     ...StyleMixins.body,
     color: Colors.gray[600],
-    lineHeight: 24,
+    lineHeight: Typography.lineHeight.normal,
   },
   tabContainer: {
     flexDirection: 'row' as const,
@@ -1376,7 +1376,7 @@ const styles = StyleSheet.create({
   reviewComment: {
     ...StyleMixins.body,
     color: Colors.gray[700],
-    lineHeight: 22,
+    lineHeight: Typography.lineHeight.snug,
     marginBottom: Spacing[3],
   },
   reviewMedia: {
@@ -1450,7 +1450,7 @@ const styles = StyleSheet.create({
   activityDescription: {
     ...StyleMixins.body,
     color: Colors.gray[700],
-    lineHeight: 22,
+    lineHeight: Typography.lineHeight.snug,
     marginBottom: Spacing[2],
   },
   activityAmount: {
