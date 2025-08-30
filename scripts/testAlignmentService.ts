@@ -7,7 +7,7 @@
  */
 
 import { config } from 'dotenv';
-import { politicalAlignmentService } from '../services/politicalAlignmentService';
+import { politicalAlignmentService } from '../services/politicalAlignment';
 
 // Load environment variables
 config();
@@ -36,9 +36,8 @@ async function testAlignmentService() {
     }
     console.log('');
 
-    // Test 3: Test user personal alignment (mock data)
+    // Test 3: Test user personal alignment with proper user handling
     console.log('👤 Testing user personal alignment...');
-    const mockUserId = 1;
     const mockAlignment = {
       liberal: 6.5,
       conservative: 2.0,
@@ -47,12 +46,15 @@ async function testAlignmentService() {
       centrist: 3.0
     };
     
-    const saved = await politicalAlignmentService.saveUserPersonalAlignment(mockUserId, mockAlignment);
+    // Try to save alignment using existing user ID 1 (we created this user)
+    const saved = await politicalAlignmentService.saveUserPersonalAlignment(1, mockAlignment);
     console.log('User alignment saved:', saved);
     
     if (saved) {
-      const retrieved = await politicalAlignmentService.getUserPersonalAlignment(mockUserId);
+      const retrieved = await politicalAlignmentService.getUserPersonalAlignment(1);
       console.log('Retrieved user alignment:', retrieved);
+    } else {
+      console.log('⚠️ Could not save user alignment (likely due to foreign key constraint)');
     }
     console.log('');
 
@@ -64,7 +66,7 @@ async function testAlignmentService() {
 
     // Test 5: Test user alignment submissions
     console.log('📝 Testing user alignment submissions...');
-    const submissions = await politicalAlignmentService.getUserAlignmentSubmissions(mockUserId);
+    const submissions = await politicalAlignmentService.getUserAlignmentSubmissions(1);
     console.log('User submissions count:', submissions.length);
     if (submissions.length > 0) {
       console.log('Sample submission:', submissions[0]);

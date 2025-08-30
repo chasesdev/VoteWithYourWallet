@@ -87,14 +87,8 @@ export const businessReviews = sqliteTable('business_reviews', {
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey(),
   email: text('email').notNull().unique(),
-  password: text('password').notNull(),
   name: text('name'),
-  isVerified: integer('is_verified', { mode: 'boolean' }).default(false).notNull(),
-  verificationToken: text('verification_token'),
-  resetToken: text('reset_token'),
-  resetTokenExpiry: integer('reset_token_expiry', { mode: 'timestamp' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });
 
 export const sessions = sqliteTable('sessions', {
@@ -113,7 +107,6 @@ export const userAlignments = sqliteTable('user_alignments', {
   green: real('green').default(0).notNull(),
   centrist: real('centrist').default(0).notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });
 
 export const businessAlignments = sqliteTable('business_alignments', {
@@ -141,7 +134,6 @@ export const userBusinessAlignments = sqliteTable('user_business_alignments', {
   centrist: real('centrist').default(0).notNull(),
   confidence: real('confidence').default(0.5).notNull(), // User confidence in their assessment
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 }, (table) => ({
   userBusinessUnique: unique().on(table.userId, table.businessId),
 }));

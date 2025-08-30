@@ -13,6 +13,8 @@ export default function RootLayout() {
         <Stack.Screen name="political-alignment" options={{ title: 'Political Alignment' }} />
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="signup" options={{ headerShown: false }} />
+        <Stack.Screen name="terms" options={{ title: 'Terms of Service' }} />
+        <Stack.Screen name="privacy" options={{ title: 'Privacy Policy' }} />
       </Stack>
     </AuthProvider>
   );

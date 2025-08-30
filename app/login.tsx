@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import LegalFooter from '../components/LegalFooter';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Button from '../components/ui/Button';
@@ -212,6 +213,9 @@ export default function LoginScreen() {
         >
           <Text style={styles.demoText}>Continue as Guest</Text>
         </TouchableOpacity>
+
+        {/* Legal Footer */}
+        <LegalFooter style={styles.legalFooter} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -322,5 +326,11 @@ const styles = {
     ...StyleMixins.bodySmall,
     color: Colors.gray[500],
     textDecorationLine: 'underline' as const,
+  },
+  legalFooter: {
+    marginTop: Spacing[8],
+    paddingTop: Spacing[6],
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray[200],
   },
 };
