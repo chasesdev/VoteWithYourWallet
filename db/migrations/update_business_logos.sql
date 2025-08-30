@@ -1,0 +1,27 @@
+-- Update business logos with asset paths
+UPDATE businesses SET logo_url = 'assets/images/businesses/patagonia.png' WHERE name = 'Patagonia';
+UPDATE businesses SET logo_url = 'assets/images/businesses/chick_fil_a.png' WHERE name = 'Chick-fil-A';
+UPDATE businesses SET logo_url = 'assets/images/businesses/ben___jerry_s.png' WHERE name = 'Ben & Jerry''s';
+UPDATE businesses SET logo_url = 'assets/images/businesses/tesla.png' WHERE name = 'Tesla';
+UPDATE businesses SET logo_url = 'assets/images/businesses/walmart.png' WHERE name = 'Walmart';
+UPDATE businesses SET logo_url = 'assets/images/businesses/south_coast_plaza.png' WHERE name = 'South Coast Plaza';
+UPDATE businesses SET logo_url = 'assets/images/businesses/disneyland_resort.png' WHERE name = 'Disneyland Resort';
+UPDATE businesses SET logo_url = 'assets/images/businesses/john_wayne_airport.png' WHERE name = 'John Wayne Airport';
+UPDATE businesses SET logo_url = 'assets/images/businesses/uc_irvine.png' WHERE name = 'UC Irvine';
+UPDATE businesses SET logo_url = 'assets/images/businesses/the_irvine_company.png' WHERE name = 'The Irvine Company';
+UPDATE businesses SET logo_url = 'assets/images/businesses/spectrum_center.png' WHERE name = 'Spectrum Center';
+UPDATE businesses SET logo_url = 'assets/images/businesses/angel_stadium.png' WHERE name = 'Angel Stadium';
+UPDATE businesses SET logo_url = 'assets/images/businesses/honda_center.png' WHERE name = 'Honda Center';
+UPDATE businesses SET logo_url = 'assets/images/businesses/the_oc_fair___event_center.png' WHERE name = 'The OC Fair & Event Center';
+UPDATE businesses SET logo_url = 'assets/images/businesses/orange_county_great_park.png' WHERE name = 'Orange County Great Park';
+UPDATE businesses SET logo_url = 'assets/images/businesses/newport_beach_pier.png' WHERE name = 'Newport Beach Pier';
+UPDATE businesses SET logo_url = 'assets/images/businesses/laguna_beach_art_museum.png' WHERE name = 'Laguna Beach Art Museum';
+UPDATE businesses SET logo_url = 'assets/images/businesses/crystal_cove_state_park.png' WHERE name = 'Crystal Cove State Park';
+UPDATE businesses SET logo_url = 'assets/images/businesses/the_bowers_museum.png' WHERE name = 'The Bowers Museum';
+UPDATE businesses SET logo_url = 'assets/images/businesses/discovery_cube_orange_county.png' WHERE name = 'Discovery Cube Orange County';
+UPDATE businesses SET logo_url = 'assets/images/businesses/fashion_island_newport_beach.png' WHERE name = 'Fashion Island Newport Beach';
+UPDATE businesses SET logo_url = 'assets/images/businesses/irvine_spectrum_center.png' WHERE name = 'Irvine Spectrum Center';
+UPDATE businesses SET logo_url = 'assets/images/businesses/mission_san_juan_capistrano.png' WHERE name = 'Mission San Juan Capistrano';
+UPDATE businesses SET logo_url = 'assets/images/businesses/balboa_island.png' WHERE name = 'Balboa Island';
+UPDATE businesses SET logo_url = 'assets/images/businesses/the_ritz_carlton_laguna_niguel.png' WHERE name = 'The Ritz-Carlton Laguna Niguel';
+UPDATE businesses SET logo_url = 'assets/images/businesses/dana_point_harbor.png' WHERE name = 'Dana Point Harbor';

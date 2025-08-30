@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Button from '../components/ui/Button';
@@ -153,7 +153,11 @@ export default function SignupScreen() {
           </TouchableOpacity>
           
           <View style={styles.logoContainer}>
-            <Ionicons name="wallet" size={48} color={Colors.primary[600]} />
+            <Image 
+              source={require('../assets/images/logo.png')} 
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
             <Text style={styles.logoText}>VoteWithYourWallet</Text>
           </View>
         </View>
@@ -301,6 +305,10 @@ const styles = {
   logoContainer: {
     alignItems: 'center' as const,
     marginTop: Spacing[6],
+  },
+  logoImage: {
+    width: 64,
+    height: 64,
   },
   logoText: {
     ...StyleMixins.heading3,

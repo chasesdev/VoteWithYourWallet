@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Dimensions, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import Button from '../components/ui/Button';
@@ -41,6 +41,7 @@ export default function OnboardingScreen() {
       subtitle: "Your shopping choices shape the world. Make them count.",
       icon: "wallet" as const,
       color: Colors.primary[600],
+      useLogo: true,
     },
     {
       id: 2,
@@ -67,13 +68,20 @@ export default function OnboardingScreen() {
 
   useEffect(() => {
     // Check if user has already completed onboarding
-    const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding');
-    if (hasCompletedOnboarding) {
-      router.replace('/');
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding');
+        if (hasCompletedOnboarding) {
+          router.replace('/');
+        }
+      }
+    } catch (error) {
+      console.error('Error checking onboarding status:', error);
     }
   }, []);
 
   const handleNext = () => {
+    console.log('handleNext called, currentSlide:', currentSlide, 'slides.length:', slides.length);
     if (currentSlide < slides.length - 1) {
       // Fade out animation
       Animated.timing(fadeAnim, {
@@ -81,7 +89,9 @@ export default function OnboardingScreen() {
         duration: 200,
         useNativeDriver: true,
       }).start(() => {
-        setCurrentSlide(currentSlide + 1);
+        const nextSlide = currentSlide + 1;
+        console.log('Moving to slide:', nextSlide);
+        setCurrentSlide(nextSlide);
         // Fade in animation
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -89,6 +99,8 @@ export default function OnboardingScreen() {
           useNativeDriver: true,
         }).start();
       });
+    } else {
+      console.log('Already at last slide');
     }
   };
 
@@ -110,8 +122,15 @@ export default function OnboardingScreen() {
   };
 
   const handleSkip = () => {
-    localStorage.setItem('hasCompletedOnboarding', 'true');
-    router.replace('/');
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem('hasCompletedOnboarding', 'true');
+      }
+      router.replace('/');
+    } catch (error) {
+      console.error('Error in handleSkip:', error);
+      router.replace('/');
+    }
   };
 
   const handleComplete = async () => {
@@ -153,8 +172,14 @@ export default function OnboardingScreen() {
       
       if (response.success) {
         // Save to localStorage for persistence
-        localStorage.setItem('userAlignment', JSON.stringify(alignment));
-        localStorage.setItem('hasCompletedOnboarding', 'true');
+        try {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            localStorage.setItem('userAlignment', JSON.stringify(alignment));
+            localStorage.setItem('hasCompletedOnboarding', 'true');
+          }
+        } catch (storageError) {
+          console.error('Error saving to localStorage:', storageError);
+        }
         
         // Navigate to home
         router.replace('/');
@@ -207,7 +232,15 @@ export default function OnboardingScreen() {
     return (
       <Animated.View style={[styles.slideContent as any, { opacity: fadeAnim }]}>
         <View style={styles.iconContainer as any}>
-          <Ionicons name={slide.icon} size={80} color={slide.color} />
+          {slide.useLogo ? (
+            <Image 
+              source={require('../assets/images/logo.png')} 
+              style={styles.logoImage as any}
+              resizeMode="contain"
+            />
+          ) : (
+            <Ionicons name={slide.icon} size={80} color={slide.color} />
+          )}
         </View>
         <Text style={styles.slideTitle as any}>{slide.title}</Text>
         <Text style={styles.slideSubtitle as any}>{slide.subtitle}</Text>
@@ -326,6 +359,10 @@ const styles = StyleSheet.create({
     borderRadius: 80,
     backgroundColor: Colors.gray[100],
     ...StyleMixins.flexCenter,
+  } as const,
+  logoImage: {
+    width: 120,
+    height: 120,
   } as const,
   slideTitle: {
     ...StyleMixins.heading2,
