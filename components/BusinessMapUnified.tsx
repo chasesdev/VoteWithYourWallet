@@ -1,15 +1,39 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Map, { Marker, Popup, NavigationControl, GeolocateControl } from 'react-map-gl';
 import { Colors, Typography, Spacing, Shadows } from '../constants/design';
 import { StyleMixins } from '../utils/styles';
 import Button from './ui/Button';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
 
-// Import mapbox-gl styles
-import 'mapbox-gl/dist/mapbox-gl.css';
+// Conditional imports for react-map-gl (web only)
+let Map: any, Marker: any, Popup: any, NavigationControl: any, GeolocateControl: any;
+let MapboxGL: any;
+
+if (Platform.OS === 'web') {
+  try {
+    const mapModule = require('react-map-gl');
+    Map = mapModule.default;
+    Marker = mapModule.Marker;
+    Popup = mapModule.Popup;
+    NavigationControl = mapModule.NavigationControl;
+    GeolocateControl = mapModule.GeolocateControl;
+    
+    // Import mapbox-gl styles
+    require('mapbox-gl/dist/mapbox-gl.css');
+  } catch (error) {
+    console.log('react-map-gl not available for web');
+  }
+} else {
+  // For mobile, we'll use react-native-maps
+  try {
+    const mapsModule = require('react-native-maps');
+    MapboxGL = mapsModule;
+  } catch (error) {
+    console.log('react-native-maps not available for mobile');
+  }
+}
 
 interface Business {
   id: number;
@@ -176,7 +200,7 @@ export default function BusinessMapUnified({
     return Colors.gray[600];
   };
 
-  // Error handling for missing token
+  // Error handling for missing token or map components
   if (!MAPBOX_TOKEN || MAPBOX_TOKEN === 'pk.demo.placeholder') {
     return (
       <View style={styles.container}>
@@ -201,6 +225,60 @@ export default function BusinessMapUnified({
           >
             Get Mapbox Token
           </Button>
+        </View>
+      </View>
+    );
+  }
+
+  // Mobile fallback - show business list with instructions
+  if (Platform.OS !== 'web' || !Map) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.fallbackContainer}>
+          <View style={styles.fallbackHeader}>
+            <Ionicons name="map-outline" size={48} color={Colors.gray[400]} />
+            <Text style={styles.fallbackTitle}>
+              {Platform.OS === 'web' ? 'Map Loading...' : 'Map View'}
+            </Text>
+            <Text style={styles.fallbackSubtitle}>
+              {Platform.OS === 'web' 
+                ? 'Loading interactive map experience...'
+                : 'Interactive map is optimized for web browsers'
+              }
+            </Text>
+          </View>
+          
+          <ScrollView style={styles.businessList}>
+            <Text style={styles.businessListTitle}>
+              {businesses.length} Businesses Found
+            </Text>
+            {businesses.map(business => (
+              <TouchableOpacity
+                key={business.id}
+                style={styles.businessItem}
+                onPress={() => onBusinessSelect(business)}
+              >
+                <View style={styles.businessItemContent}>
+                  <View style={styles.businessIcon}>
+                    <Ionicons name={getCategoryIcon(business.category)} size={24} color={Colors.primary[600]} />
+                  </View>
+                  <View style={styles.businessInfo}>
+                    <Text style={styles.businessName}>{business.name}</Text>
+                    <Text style={styles.businessCategory}>{business.category}</Text>
+                    {business.address && (
+                      <Text style={styles.businessAddress}>{business.address}</Text>
+                    )}
+                    {userAlignment && (
+                      <Text style={styles.businessAlignment}>
+                        {getAlignmentPercentage(business)}% match
+                      </Text>
+                    )}
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={Colors.gray[400]} />
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
       </View>
     );
@@ -389,5 +467,82 @@ const styles = {
     color: Colors.gray[600],
     textAlign: 'center' as const,
     lineHeight: 24,
+  },
+  // Fallback styles
+  fallbackContainer: {
+    flex: 1,
+    backgroundColor: Colors.gray[50],
+  },
+  fallbackHeader: {
+    alignItems: 'center' as const,
+    padding: Spacing[8],
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray[200],
+  },
+  fallbackTitle: {
+    ...StyleMixins.heading3,
+    color: Colors.gray[900],
+    marginTop: Spacing[4],
+    textAlign: 'center' as const,
+  },
+  fallbackSubtitle: {
+    ...StyleMixins.body,
+    color: Colors.gray[600],
+    textAlign: 'center' as const,
+    marginTop: Spacing[2],
+  },
+  businessList: {
+    flex: 1,
+    backgroundColor: Colors.white,
+  },
+  businessListTitle: {
+    ...StyleMixins.bodySmall,
+    fontWeight: '600' as const,
+    color: Colors.gray[700],
+    padding: Spacing[4],
+    backgroundColor: Colors.gray[50],
+  },
+  businessItem: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray[100],
+  },
+  businessItemContent: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    padding: Spacing[4],
+  },
+  businessIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: Colors.primary[50],
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    marginRight: Spacing[4],
+  },
+  businessInfo: {
+    flex: 1,
+  },
+  businessName: {
+    ...StyleMixins.body,
+    fontWeight: '600' as const,
+    color: Colors.gray[900],
+    marginBottom: Spacing[1],
+  },
+  businessCategory: {
+    ...StyleMixins.caption,
+    color: Colors.primary[600],
+    marginBottom: Spacing[1],
+  },
+  businessAddress: {
+    ...StyleMixins.caption,
+    color: Colors.gray[500],
+    marginBottom: Spacing[1],
+  },
+  businessAlignment: {
+    ...StyleMixins.caption,
+    color: Colors.success[600],
+    fontWeight: '500' as const,
   },
 };
