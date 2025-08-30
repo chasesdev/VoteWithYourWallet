@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import PoliticalAlignmentService from '../services/politicalAlignmentService';
 
 interface UserAlignment {
   liberal: number;
@@ -27,19 +28,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-      // For now, return a mock alignment or null if not set
-      // In a real app, this would fetch from the database
-      const mockAlignment: UserAlignment = {
-        liberal: 0,
-        conservative: 0,
-        libertarian: 0,
-        green: 0,
-        centrist: 0,
-      };
+      const userIdNum = parseInt(userId as string);
+      if (isNaN(userIdNum)) {
+        return res.status(400).json({ error: 'Invalid user ID' });
+      }
 
+      const alignment = await PoliticalAlignmentService.getUserPersonalAlignment(userIdNum);
+      
       return res.status(200).json({
         success: true,
-        data: mockAlignment,
+        data: alignment.data || null,
       });
     } catch (error) {
       console.error('Error fetching user alignment:', error);
@@ -66,15 +64,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
 
-      // For now, just return success
-      // In a real app, this would save to the database
-      console.log('Setting user alignment:', { userId, alignment });
+      const userIdNum = parseInt(userId as string);
+      if (isNaN(userIdNum)) {
+        return res.status(400).json({ error: 'Invalid user ID' });
+      }
 
-      return res.status(200).json({
-        success: true,
-        message: 'User alignment updated successfully',
-        data: alignment,
-      });
+      const result = await PoliticalAlignmentService.saveUserPersonalAlignment(userIdNum, alignment);
+
+      if (result.success) {
+        return res.status(200).json({
+          success: true,
+          message: 'User alignment updated successfully',
+          data: alignment,
+        });
+      } else {
+        return res.status(500).json({ error: result.error || 'Failed to update user alignment' });
+      }
     } catch (error) {
       console.error('Error setting user alignment:', error);
       return res.status(500).json({ error: 'Failed to update user alignment' });
