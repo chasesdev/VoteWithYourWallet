@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, ViewStyle, TextStyle, TextInputProps, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, ViewStyle, TextStyle, TextInputProps, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { InputStyles, StyleMixins } from '../../utils/styles';
 import { Colors } from '../../constants/design';
@@ -76,7 +76,16 @@ export default function Input({
         )}
         
         <TextInput
-          style={getInputStyle()}
+          style={[
+            getInputStyle(),
+            // Web-specific styles to remove default browser styling
+            Platform.OS === 'web' && {
+              outline: 'none',
+              // @ts-ignore - Web-specific CSS properties
+              boxShadow: 'none',
+              WebkitAppearance: 'none',
+            }
+          ]}
           placeholderTextColor={Colors.gray[400]}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}

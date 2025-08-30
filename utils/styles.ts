@@ -1,5 +1,5 @@
 // Style Utilities - Professional styling helpers
-import { StyleSheet, ViewStyle, TextStyle, ImageStyle } from 'react-native';
+import { StyleSheet, ViewStyle, TextStyle, ImageStyle, Platform } from 'react-native';
 import { Colors, Typography, Spacing, BorderRadius, Shadows, Components } from '../constants/design';
 
 // Common style mixins for consistent styling
@@ -224,7 +224,14 @@ export const InputStyles = {
   
   inputFocused: {
     borderColor: Colors.primary[500],
-    ...Shadows.subtle,
+    borderWidth: 2,
+    ...Shadows.medium,
+    // Better web focus treatment
+    ...(Platform.OS === 'web' && {
+      // @ts-ignore - Web-specific CSS properties
+      boxShadow: `0 0 0 3px ${Colors.primary[100]}`,
+      transform: 'none', // Prevent any transforms on focus
+    }),
   } as ViewStyle,
   
   inputError: {

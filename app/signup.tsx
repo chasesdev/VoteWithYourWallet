@@ -266,14 +266,8 @@ export default function SignupScreen() {
         <TouchableOpacity 
           style={styles.demoButton}
           onPress={() => {
-            Alert.alert(
-              'Demo Mode', 
-              'Continue without creating an account? Your preferences won\'t be saved.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Continue', onPress: () => router.replace(redirect as any) }
-              ]
-            );
+            // Navigate directly to the main app as guest
+            router.replace(redirect === '/signup' ? '/' : (redirect as any));
           }}
         >
           <Text style={styles.demoText}>Continue as Guest</Text>
