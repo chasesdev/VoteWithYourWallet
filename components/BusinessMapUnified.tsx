@@ -7,9 +7,30 @@ import Button from './ui/Button';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
 
-// Import react-map-gl directly for web builds
-import Map, { Marker, Popup, NavigationControl, GeolocateControl } from 'react-map-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+// Conditional imports that work with Metro bundler
+let Map: any, Marker: any, Popup: any, NavigationControl: any, GeolocateControl: any;
+let isMapAvailable = false;
+
+if (Platform.OS === 'web') {
+  try {
+    // Use the correct import path for react-map-gl v8
+    const mapModule = require('react-map-gl/mapbox');
+    Map = mapModule.Map;
+    Marker = mapModule.Marker;
+    Popup = mapModule.Popup;
+    NavigationControl = mapModule.NavigationControl;
+    GeolocateControl = mapModule.GeolocateControl;
+    
+    // Import mapbox styles for web
+    require('mapbox-gl/dist/mapbox-gl.css');
+    
+    isMapAvailable = !!Map;
+    console.log('react-map-gl loaded successfully for web');
+  } catch (error) {
+    console.log('Failed to load react-map-gl:', error);
+    isMapAvailable = false;
+  }
+}
 
 interface Business {
   id: number;
@@ -209,10 +230,11 @@ export default function BusinessMapUnified({
   // Debug logging to see what's happening
   console.log('Platform.OS:', Platform.OS);
   console.log('Map available:', !!Map);
+  console.log('isMapAvailable:', isMapAvailable);
   console.log('MAPBOX_TOKEN available:', !!MAPBOX_TOKEN && MAPBOX_TOKEN !== 'pk.demo.placeholder');
 
   // Mobile fallback - show business list with instructions  
-  if (Platform.OS !== 'web') {
+  if (Platform.OS !== 'web' || !isMapAvailable) {
     return (
       <View style={styles.container}>
         <View style={styles.fallbackContainer}>
