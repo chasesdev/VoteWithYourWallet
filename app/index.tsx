@@ -14,6 +14,7 @@ import Card from '../components/ui/Card';
 import { fetchBusinesses, setUserAlignment } from '../utils/api';
 import { Colors, Typography, Spacing } from '../constants/design';
 import { StyleMixins, CommonStyles } from '../utils/styles';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Business {
   id: number;
@@ -44,6 +45,7 @@ interface UserAlignment {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { user, isAuthenticated, logout } = useAuth();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [filteredBusinesses, setFilteredBusinesses] = useState<Business[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -70,17 +72,19 @@ export default function HomeScreen() {
     loadUserAlignment();
     getUserLocation();
     
-    // Check if user needs onboarding
-    const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding');
-    const hasSeenApp = localStorage.getItem('hasSeenApp');
-    
-    if (!hasCompletedOnboarding && !hasSeenApp) {
-      // First time user - show onboarding
-      setTimeout(() => {
-        router.replace('/onboarding' as any);
-      }, 100);
+    // Only check onboarding for non-authenticated users
+    if (!isAuthenticated) {
+      const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding');
+      const hasSeenApp = localStorage.getItem('hasSeenApp');
+      
+      if (!hasCompletedOnboarding && !hasSeenApp) {
+        // First time user - show onboarding
+        setTimeout(() => {
+          router.replace('/onboarding' as any);
+        }, 100);
+      }
     }
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     // Debounced search
@@ -138,9 +142,9 @@ export default function HomeScreen() {
         const hasAlignment = Object.values(alignment).some((value: any) => value > 0);
         setHasUserAlignment(hasAlignment);
         
-        // Hide hero if user has alignment and has seen the app before
+        // Hide hero if user has alignment and has seen the app before, or if authenticated
         const hasSeenApp = localStorage.getItem('hasSeenApp');
-        if (hasAlignment && hasSeenApp) {
+        if ((hasAlignment && hasSeenApp) || isAuthenticated) {
           setShowHero(false);
         }
       }
@@ -214,14 +218,18 @@ export default function HomeScreen() {
   };
 
   const handleSetAlignment = async () => {
+    if (!isAuthenticated) {
+      // Redirect to login if not authenticated
+      router.push('/login?redirect=/political-alignment');
+      return;
+    }
+
     try {
-      // Generate a simple user ID (in a real app, this would come from authentication)
-      const userId = Math.floor(Math.random() * 1000000);
-      
-      const response = await setUserAlignment(userId, userAlignment);
+      const response = await setUserAlignment(user!.id, userAlignment);
       
       if (response.success) {
         localStorage.setItem('userAlignment', JSON.stringify(userAlignment));
+        setHasUserAlignment(true);
         router.back();
       } else {
         setError(response.error || 'Failed to save alignment');
@@ -366,22 +374,40 @@ export default function HomeScreen() {
         <View style={logoContainerStyle}>
           <View style={logoIconContainerStyle}>
             <Ionicons name="wallet" size={32} color={Colors.primary[600]} />
-            <Ionicons 
-              name="checkmark-circle" 
-              size={16} 
-              color={Colors.success[500]} 
-              style={logoCheckmarkStyle} 
-            />
+            {isAuthenticated && (
+              <Ionicons 
+                name="checkmark-circle" 
+                size={16} 
+                color={Colors.success[500]} 
+                style={logoCheckmarkStyle} 
+              />
+            )}
           </View>
           <Text style={titleStyle}>VoteWithYourWallet</Text>
         </View>
         
-        <TouchableOpacity style={notificationButtonStyle}>
-          <Ionicons name="notifications" size={24} color={Colors.gray[600]} />
-          <View style={notificationBadgeStyle}>
-            <Text style={notificationBadgeTextStyle}>3</Text>
-          </View>
-        </TouchableOpacity>
+        {isAuthenticated ? (
+          <TouchableOpacity 
+            style={userMenuButtonStyle}
+            onPress={() => {
+              // Show user menu or logout directly
+              logout();
+            }}
+          >
+            <View style={userAvatarStyle}>
+              <Text style={userAvatarTextStyle}>
+                {user?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity 
+            style={loginButtonHeaderStyle}
+            onPress={() => router.push('/login')}
+          >
+            <Text style={loginButtonTextStyle}>Login</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Hero Section */}
@@ -469,17 +495,41 @@ export default function HomeScreen() {
                   Get Personalized Matches
                 </Text>
                 <Text style={alignmentPromptDescriptionStyle}>
-                  Set your political alignment to see which businesses match your values!
+                  {isAuthenticated 
+                    ? "Set your political alignment to see which businesses match your values!"
+                    : "Create an account to save your political alignment and get personalized business matches!"
+                  }
                 </Text>
               </View>
             </View>
-            <Button
-              variant="primary"
-              size="lg"
-              onPress={() => router.push('/political-alignment')}
-            >
-              Set My Values
-            </Button>
+            {isAuthenticated ? (
+              <Button
+                variant="primary"
+                size="lg"
+                onPress={() => router.push('/political-alignment')}
+              >
+                Set My Values
+              </Button>
+            ) : (
+              <View style={authButtonsStyle}>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  onPress={() => router.push('/signup')}
+                  style={{ flex: 1 }}
+                >
+                  Sign Up
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onPress={() => router.push('/login')}
+                  style={{ flex: 1 }}
+                >
+                  Login
+                </Button>
+              </View>
+            )}
           </View>
         </Card>
       )}
@@ -724,6 +774,42 @@ const notificationBadgeTextStyle = {
   fontSize: 10,
   color: Colors.white,
   fontWeight: 'bold' as const,
+};
+
+const loginButtonHeaderStyle = {
+  paddingHorizontal: Spacing[3],
+  paddingVertical: Spacing[2],
+  backgroundColor: Colors.primary[600],
+  borderRadius: 8,
+};
+
+const loginButtonTextStyle = {
+  ...StyleMixins.caption,
+  color: Colors.white,
+  fontWeight: '600' as const,
+};
+
+const userMenuButtonStyle = {
+  padding: Spacing[1],
+};
+
+const userAvatarStyle = {
+  width: 32,
+  height: 32,
+  borderRadius: 16,
+  backgroundColor: Colors.primary[600],
+  ...StyleMixins.flexCenter,
+};
+
+const userAvatarTextStyle = {
+  ...StyleMixins.caption,
+  color: Colors.white,
+  fontWeight: '600' as const,
+};
+
+const authButtonsStyle = {
+  flexDirection: 'row' as const,
+  gap: Spacing[3],
 };
 
 // Hero Section Styles

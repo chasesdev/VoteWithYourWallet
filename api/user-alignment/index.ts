@@ -1,9 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getDB } from '../../db/connection';
-import { users, userAlignments } from '../../db/schema';
+import { userAlignments } from '../../db/schema';
 import { eq } from 'drizzle-orm';
+import { withAuth, AuthenticatedRequest } from '../../utils/middleware';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+async function handler(req: AuthenticatedRequest, res: VercelResponse) {
   // Add CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -19,23 +20,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { userId, liberal = 0, conservative = 0, libertarian = 0, green = 0, centrist = 0 } = req.body;
+    const { liberal = 0, conservative = 0, libertarian = 0, green = 0, centrist = 0 } = req.body;
 
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
+    // User is guaranteed to exist from auth middleware
+    const userId = req.user!.id;
 
     const db = getDB();
     
     if (!db) {
       return res.status(500).json({ error: 'Database not available' });
-    }
-
-    // Check if user exists (in a real app, you might want to create the user if not exists)
-    const userExists = await db.select().from(users).where(eq(users.id, userId));
-    
-    if (!userExists.length) {
-      return res.status(404).json({ error: 'User not found' });
     }
     
     // Check if alignment already exists for this user
@@ -51,6 +44,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           libertarian,
           green,
           centrist,
+          updatedAt: new Date(),
         })
         .where(eq(userAlignments.userId, userId));
     } else {
@@ -74,3 +68,5 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Failed to update user alignment' });
   }
 }
+
+export default withAuth(handler);
