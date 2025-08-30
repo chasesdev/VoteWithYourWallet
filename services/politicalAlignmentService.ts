@@ -646,7 +646,58 @@ class PoliticalAlignmentService {
   }
 }
 
-// Export the service
-export const politicalAlignmentService = new PoliticalAlignmentService();
+// Lazy initialization to avoid database connection errors
+let serviceInstance: PoliticalAlignmentService | null = null;
+
+export const politicalAlignmentService = {
+  getInstance(): PoliticalAlignmentService {
+    if (!serviceInstance) {
+      serviceInstance = new PoliticalAlignmentService();
+    }
+    return serviceInstance;
+  },
+  
+  // Proxy all methods to the instance
+  async scrapePoliticalData(businessName: string, businessWebsite?: string) {
+    return this.getInstance().scrapePoliticalData(businessName, businessWebsite);
+  },
+  
+  async savePoliticalAlignment(businessId: number, politicalData: any) {
+    return this.getInstance().savePoliticalAlignment(businessId, politicalData);
+  },
+  
+  async getBusinessPoliticalAlignment(businessId: number) {
+    return this.getInstance().getBusinessPoliticalAlignment(businessId);
+  },
+  
+  async getBusinessDonations(businessId: number) {
+    return this.getInstance().getBusinessDonations(businessId);
+  },
+  
+  async updateAllBusinessAlignments() {
+    return this.getInstance().updateAllBusinessAlignments();
+  },
+  
+  async submitUserAlignment(userId: number, businessId: number, alignment: any, confidence?: number) {
+    return this.getInstance().submitUserAlignment(userId, businessId, alignment, confidence);
+  },
+  
+  async getUserAlignmentSubmissions(userId: number) {
+    return this.getInstance().getUserAlignmentSubmissions(userId);
+  },
+  
+  async getUserPersonalAlignment(userId: number) {
+    return this.getInstance().getUserPersonalAlignment(userId);
+  },
+  
+  async saveUserPersonalAlignment(userId: number, alignment: any) {
+    return this.getInstance().saveUserPersonalAlignment(userId, alignment);
+  },
+  
+  async getAlignmentStatistics() {
+    return this.getInstance().getAlignmentStatistics();
+  }
+};
+
 export default PoliticalAlignmentService;
 
