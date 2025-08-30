@@ -1,8 +1,7 @@
 // API utility functions for VoteWithYourWallet
 
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://votewithyourwallet.vercel.app/api' 
-  : 'http://localhost:3000/api';
+// Use relative URLs for API calls to work with any domain
+const API_BASE_URL = '/api';
 
 // Generic API request function
 async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<{ success: boolean; data?: T; error?: string }> {

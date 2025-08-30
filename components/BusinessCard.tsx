@@ -113,7 +113,7 @@ export default function BusinessCard({
                 style={compactLogoStyle}
                 resizeMode="contain"
               />
-              <View style={{ flex: 1, marginLeft: Spacing[3] }}>
+              <View style={{ flex: 1, marginLeft: Spacing[3], minWidth: 0 }}>
                 <Text style={compactNameStyle} numberOfLines={2}>
                   {business.name}
                 </Text>
@@ -277,6 +277,8 @@ export default function BusinessCard({
 const compactCardStyle = {
   margin: Spacing[2],
   padding: Spacing[4],
+  minHeight: 80,
+  width: '100%',
 };
 
 const compactContentStyle = {
@@ -298,23 +300,24 @@ const compactLogoStyle = {
   height: 40,
   borderRadius: 8,
   backgroundColor: Colors.gray[100],
+  flexShrink: 0,
 };
 
 const compactNameStyle = {
   ...StyleMixins.body,
   fontWeight: '600' as const,
   color: Colors.gray[900],
-  lineHeight: Typography.lineHeight.tight,
+  lineHeight: Typography.lineHeight.tight * Typography.fontSize.base,
 };
 
 const compactCategoryContainerStyle = {
   ...StyleMixins.flexStart,
   marginTop: Spacing[1],
+  gap: Spacing[1],
 };
 
 const compactCategoryStyle = {
   ...StyleMixins.caption,
-  marginLeft: Spacing[1],
   color: Colors.gray[500],
 };
 
@@ -323,6 +326,8 @@ const featuredCardStyle = {
   margin: Spacing[4],
   padding: 0,
   overflow: 'hidden' as const,
+  maxWidth: 400,
+  width: '100%',
 };
 
 const featuredImageContainerStyle = {
@@ -369,7 +374,7 @@ const featuredCategoryContainerStyle = {
 
 const featuredDescriptionStyle = {
   ...StyleMixins.body,
-  lineHeight: Typography.lineHeight.normal,
+  lineHeight: Typography.lineHeight.normal * Typography.fontSize.base,
   marginBottom: Spacing[4],
 };
 
@@ -386,17 +391,19 @@ const featuredAlignmentLabelStyle = {
 
 const featuredFooterStyle = {
   ...StyleMixins.flexStart,
+  gap: Spacing[2],
 };
 
 const featuredAddressStyle = {
   ...StyleMixins.caption,
-  marginLeft: Spacing[2],
 };
 
 // Default Card Styles
 const defaultCardStyle = {
   margin: Spacing[3],
   padding: Spacing[5],
+  width: '100%',
+  minHeight: 140,
 };
 
 const defaultContentStyle = {
@@ -414,11 +421,13 @@ const defaultLogoStyle = {
   borderRadius: 12,
   backgroundColor: Colors.gray[100],
   marginRight: Spacing[4],
+  flexShrink: 0,
 };
 
 const defaultBusinessInfoStyle = {
   flex: 1,
   gap: Spacing[2],
+  minWidth: 0,
 };
 
 const defaultTitleRowStyle = {
@@ -430,7 +439,7 @@ const defaultNameStyle = {
   ...StyleMixins.heading4,
   flex: 1,
   marginRight: Spacing[2],
-  lineHeight: Typography.lineHeight.snug,
+  lineHeight: Typography.lineHeight.snug * Typography.fontSize.xl,
 };
 
 const defaultCategoryRowStyle = {
@@ -440,7 +449,7 @@ const defaultCategoryRowStyle = {
 
 const defaultDescriptionStyle = {
   ...StyleMixins.body,
-  lineHeight: Typography.lineHeight.snug,
+  lineHeight: Typography.lineHeight.normal * Typography.fontSize.base,
   color: Colors.gray[600],
 };
 
@@ -449,11 +458,11 @@ const defaultFooterStyle = {
   paddingTop: Spacing[2],
   borderTopWidth: 1,
   borderTopColor: Colors.gray[100],
+  gap: Spacing[2],
 };
 
 const defaultAddressStyle = {
   ...StyleMixins.caption,
-  marginLeft: Spacing[2],
   flex: 1,
 };
 

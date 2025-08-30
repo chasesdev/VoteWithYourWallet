@@ -137,13 +137,13 @@ export const Typography = {
     extrabold: '800',
   },
   
-  // Line Heights
+  // Line Heights (web-safe values)
   lineHeight: {
     none: 1,
-    tight: 1.25,
-    snug: 1.375,
-    normal: 1.5,
-    relaxed: 1.625,
+    tight: 1.4,     // Changed from 1.25 to prevent overlap
+    snug: 1.5,      // Changed from 1.375
+    normal: 1.6,    // Changed from 1.5
+    relaxed: 1.75,  // Changed from 1.625
     loose: 2,
   },
 };

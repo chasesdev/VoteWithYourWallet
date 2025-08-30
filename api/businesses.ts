@@ -1,5 +1,6 @@
-import { db } from '../../../db/connection';
-import { businesses, businessAlignments } from '../../../db/schema';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { db } from '../db/connection';
+import { businesses, businessAlignments } from '../db/schema';
 import { eq, or, ilike, desc, and } from 'drizzle-orm';
 
 interface BusinessWithAlignment {
@@ -22,32 +23,44 @@ interface BusinessWithAlignment {
   } | null;
 }
 
-export async function GET(request: Request) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   try {
-    const { searchParams } = new URL(request.url);
-    const q = searchParams.get('q') || '';
-    const category = searchParams.get('category') || '';
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const { q = '', category = '', page = '1', limit = '10' } = req.query;
+    const query = q as string;
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
 
     // Build the query conditions
     let whereConditions: any[] = [];
     
-    if (q) {
+    if (query) {
       whereConditions.push(
         or(
-          ilike(businesses.name, `%${q}%`),
-          ilike(businesses.description, `%${q}%`)
+          ilike(businesses.name, `%${query}%`),
+          ilike(businesses.description, `%${query}%`)
         )
       );
     }
     
     if (category && category !== 'All') {
-      whereConditions.push(eq(businesses.category, category));
+      whereConditions.push(eq(businesses.category, category as string));
     }
 
     // Get businesses with their alignment data
-    const businessesQuery = db
+    let businessesQuery = db
       .select({
         id: businesses.id,
         name: businesses.name,
@@ -72,17 +85,17 @@ export async function GET(request: Request) {
 
     // Apply where conditions if any
     if (whereConditions.length > 0) {
-      businessesQuery.where(and(...whereConditions));
+      businessesQuery = businessesQuery.where(and(...whereConditions));
     }
 
     // Get total count for pagination
-    const totalCountQuery = db
+    let totalCountQuery = db
       .select({ count: businesses.id })
       .from(businesses)
       .leftJoin(businessAlignments, eq(businesses.id, businessAlignments.businessId));
 
     if (whereConditions.length > 0) {
-      totalCountQuery.where(and(...whereConditions));
+      totalCountQuery = totalCountQuery.where(and(...whereConditions));
     }
 
     const totalCountResult = await totalCountQuery;
@@ -91,8 +104,8 @@ export async function GET(request: Request) {
     // Apply pagination and ordering
     const paginatedBusinesses = await businessesQuery
       .orderBy(desc(businesses.createdAt))
-      .limit(limit)
-      .offset((page - 1) * limit);
+      .limit(limitNum)
+      .offset((pageNum - 1) * limitNum);
 
     // Transform the data to match the expected format
     const transformedBusinesses = (paginatedBusinesses as BusinessWithAlignment[]).map((business: BusinessWithAlignment) => ({
@@ -106,21 +119,17 @@ export async function GET(request: Request) {
       },
     }));
 
-    return Response.json({
+    return res.status(200).json({
       businesses: transformedBusinesses,
       pagination: {
-        page,
-        limit,
+        page: pageNum,
+        limit: limitNum,
         total: totalCount,
       }
     });
-
   } catch (error) {
     console.error('Error fetching businesses:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    return Response.json({ 
-      error: 'Failed to fetch businesses', 
-      details: errorMessage 
-    }, { status: 500 });
+    return res.status(500).json({ error: 'Failed to fetch businesses', details: errorMessage });
   }
 }

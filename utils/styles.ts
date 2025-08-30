@@ -50,7 +50,7 @@ export const StyleMixins = {
     fontFamily: Typography.fontFamily.primary,
     fontSize: Typography.fontSize['4xl'],
     fontWeight: Typography.fontWeight.bold,
-    lineHeight: Typography.lineHeight.tight,
+    lineHeight: Typography.lineHeight.tight * Typography.fontSize['4xl'],
     color: Colors.gray[900],
   } as TextStyle,
   
@@ -58,7 +58,7 @@ export const StyleMixins = {
     fontFamily: Typography.fontFamily.primary,
     fontSize: Typography.fontSize['3xl'],
     fontWeight: Typography.fontWeight.bold,
-    lineHeight: Typography.lineHeight.tight,
+    lineHeight: Typography.lineHeight.tight * Typography.fontSize['3xl'],
     color: Colors.gray[900],
   } as TextStyle,
   
@@ -66,7 +66,7 @@ export const StyleMixins = {
     fontFamily: Typography.fontFamily.primary,
     fontSize: Typography.fontSize['2xl'],
     fontWeight: Typography.fontWeight.semibold,
-    lineHeight: Typography.lineHeight.snug,
+    lineHeight: Typography.lineHeight.snug * Typography.fontSize['2xl'],
     color: Colors.gray[900],
   } as TextStyle,
   
@@ -74,7 +74,7 @@ export const StyleMixins = {
     fontFamily: Typography.fontFamily.primary,
     fontSize: Typography.fontSize.xl,
     fontWeight: Typography.fontWeight.semibold,
-    lineHeight: Typography.lineHeight.normal,
+    lineHeight: Typography.lineHeight.normal * Typography.fontSize.xl,
     color: Colors.gray[900],
   } as TextStyle,
   
@@ -82,7 +82,7 @@ export const StyleMixins = {
     fontFamily: Typography.fontFamily.primary,
     fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.normal,
-    lineHeight: Typography.lineHeight.relaxed,
+    lineHeight: Typography.lineHeight.relaxed * Typography.fontSize.lg,
     color: Colors.gray[700],
   } as TextStyle,
   
@@ -90,7 +90,7 @@ export const StyleMixins = {
     fontFamily: Typography.fontFamily.primary,
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.normal,
-    lineHeight: Typography.lineHeight.normal,
+    lineHeight: Typography.lineHeight.normal * Typography.fontSize.base,
     color: Colors.gray[700],
   } as TextStyle,
   
@@ -98,7 +98,7 @@ export const StyleMixins = {
     fontFamily: Typography.fontFamily.primary,
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.normal,
-    lineHeight: Typography.lineHeight.normal,
+    lineHeight: Typography.lineHeight.normal * Typography.fontSize.sm,
     color: Colors.gray[600],
   } as TextStyle,
   
@@ -106,7 +106,7 @@ export const StyleMixins = {
     fontFamily: Typography.fontFamily.primary,
     fontSize: Typography.fontSize.xs,
     fontWeight: Typography.fontWeight.normal,
-    lineHeight: Typography.lineHeight.normal,
+    lineHeight: Typography.lineHeight.normal * Typography.fontSize.xs,
     color: Colors.gray[500],
   } as TextStyle,
 };
