@@ -97,7 +97,9 @@ export default function BusinessMap({
   const mapRef = useRef<any>(null);
 
   useEffect(() => {
-    requestLocationPermission();
+    if (Platform.OS !== 'web') {
+      requestLocationPermission();
+    }
     generateClusters();
   }, [businesses, mapRegion]);
 
