@@ -50,7 +50,6 @@
     "expo-status-bar": "~2.2.3",
     "expo-system-ui": "~5.0.11",
     "expo-web-browser": "~14.2.0",
-    "jose": "^6.1.0",
     "jsonwebtoken": "^9.0.2",
     "mapbox-gl": "^3.14.0",
     "postgres": "^3.4.7",
