@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { politicalAlignmentService } from '../services/politicalAlignment';
+import { getDB } from '../db/connection';
+import { userAlignments, users } from '../db/schema';
+import { eq } from 'drizzle-orm';
 
 interface UserAlignment {
   liberal: number;
@@ -34,7 +36,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Invalid user ID' });
       }
 
-      const alignment = await politicalAlignmentService.getUserPersonalAlignment(userIdNum);
+      const db = getDB();
+      const result = await db
+        .select()
+        .from(userAlignments)
+        .where(eq(userAlignments.userId, userIdNum))
+        .limit(1);
+
+      const alignment = result.length > 0 ? {
+        liberal: result[0].liberal,
+        conservative: result[0].conservative,
+        libertarian: result[0].libertarian,
+        green: result[0].green,
+        centrist: result[0].centrist
+      } : null;
       
       return res.status(200).json({
         success: true,
@@ -42,7 +57,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     } catch (error) {
       console.error('Error fetching user alignment:', error);
-      return res.status(500).json({ error: 'Failed to fetch user alignment' });
+      return res.status(500).json({ 
+        error: 'Failed to fetch user alignment',
+        details: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 
@@ -70,20 +88,54 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Invalid user ID' });
       }
 
-      const success = await politicalAlignmentService.saveUserPersonalAlignment(userIdNum, alignment);
-
-      if (success) {
-        return res.status(200).json({
-          success: true,
-          message: 'User alignment updated successfully',
-          data: alignment,
-        });
-      } else {
-        return res.status(500).json({ error: 'Failed to update user alignment' });
+      const db = getDB();
+      
+      // Check if user exists (optional - skip if we want to allow any userId)
+      const existingUser = await db.select().from(users).where(eq(users.id, userIdNum)).limit(1);
+      if (existingUser.length === 0) {
+        return res.status(404).json({ error: 'User not found' });
       }
+
+      // Try to insert or update alignment data
+      try {
+        // Try insert first
+        await db.insert(userAlignments).values({
+          userId: userIdNum,
+          liberal: alignment.liberal,
+          conservative: alignment.conservative,
+          libertarian: alignment.libertarian,
+          green: alignment.green,
+          centrist: alignment.centrist,
+          createdAt: new Date()
+        });
+      } catch (insertError: any) {
+        // If it's a unique constraint violation, update instead
+        if (insertError.message && insertError.message.includes('UNIQUE constraint failed')) {
+          await db.update(userAlignments)
+            .set({
+              liberal: alignment.liberal,
+              conservative: alignment.conservative,
+              libertarian: alignment.libertarian,
+              green: alignment.green,
+              centrist: alignment.centrist
+            })
+            .where(eq(userAlignments.userId, userIdNum));
+        } else {
+          throw insertError;
+        }
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'User alignment updated successfully',
+        data: alignment,
+      });
     } catch (error) {
       console.error('Error setting user alignment:', error);
-      return res.status(500).json({ error: 'Failed to update user alignment' });
+      return res.status(500).json({ 
+        error: 'Failed to update user alignment',
+        details: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 
