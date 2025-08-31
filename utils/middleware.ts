@@ -30,7 +30,7 @@ export function withAuth(handler: AuthenticatedApiHandler) {
       }
 
       // Verify JWT
-      const payload = await verifyJWT(token);
+      const payload = verifyJWT(token);
       
       if (!payload.userId || !payload.sessionId) {
         return res.status(401).json({ error: 'Invalid authentication token' });
@@ -83,7 +83,7 @@ export function withOptionalAuth(handler: AuthenticatedApiHandler) {
       if (token) {
         try {
           // Verify JWT
-          const payload = await verifyJWT(token);
+          const payload = verifyJWT(token);
           
           if (payload.userId && payload.sessionId) {
             // Verify session

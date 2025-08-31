@@ -1,12 +1,11 @@
-import bcrypt from 'bcryptjs';
-import { SignJWT, jwtVerify } from 'jose';
+import 'dotenv/config';
+import * as bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { db } from '../db/connection';
 import { users, sessions } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production'
-);
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
@@ -42,19 +41,24 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 }
 
 // JWT token management
-export async function createJWT(payload: any): Promise<string> {
-  return new SignJWT(payload)
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime('7d')
-    .sign(JWT_SECRET);
+export function createJWT(payload: any): string {
+  return jwt.sign(payload, JWT_SECRET, { 
+    expiresIn: '7d',
+    algorithm: 'HS256'
+  });
 }
 
-export async function verifyJWT(token: string): Promise<any> {
+export function verifyJWT(token: string): any {
+  console.log('🔍 [AUTH] verifyJWT called');
+  console.log('🔍 [AUTH] Token length:', token.length);
+  console.log('🔍 [AUTH] JWT_SECRET available:', !!JWT_SECRET);
+  
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const payload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
+    console.log('🔍 [AUTH] JWT verification successful');
     return payload;
   } catch (error) {
+    console.error('❌ [AUTH] JWT verification failed:', error);
     throw new AuthError('Invalid token', 'INVALID_TOKEN');
   }
 }
@@ -74,30 +78,43 @@ export async function createSession(userId: number): Promise<string> {
 }
 
 export async function getSession(sessionId: string): Promise<SessionData | null> {
-  const [session] = await db
-    .select()
-    .from(sessions)
-    .where(and(
-      eq(sessions.id, sessionId),
-      // Check if session hasn't expired
-    ))
-    .limit(1);
+  console.log('🔍 [AUTH] getSession called with sessionId:', sessionId);
+  console.log('🔍 [AUTH] Database connection available:', !!db);
+  
+  try {
+    const [session] = await db
+      .select()
+      .from(sessions)
+      .where(and(
+        eq(sessions.id, sessionId),
+        // Check if session hasn't expired
+      ))
+      .limit(1);
 
-  if (!session) {
-    return null;
+    console.log('🔍 [AUTH] Session query result:', !!session);
+    
+    if (!session) {
+      console.log('🔍 [AUTH] No session found');
+      return null;
+    }
+
+    // Check if session is expired
+    if (session.expiresAt < new Date()) {
+      console.log('🔍 [AUTH] Session expired, deleting');
+      await deleteSession(sessionId);
+      return null;
+    }
+
+    console.log('🔍 [AUTH] Session valid, returning data');
+    return {
+      userId: session.userId,
+      sessionId: session.id,
+      expiresAt: session.expiresAt,
+    };
+  } catch (error) {
+    console.error('❌ [AUTH] getSession error:', error);
+    throw error;
   }
-
-  // Check if session is expired
-  if (session.expiresAt < new Date()) {
-    await deleteSession(sessionId);
-    return null;
-  }
-
-  return {
-    userId: session.userId,
-    sessionId: session.id,
-    expiresAt: session.expiresAt,
-  };
 }
 
 export async function deleteSession(sessionId: string): Promise<void> {
@@ -174,19 +191,27 @@ export async function authenticateUser(email: string, password: string): Promise
 }
 
 export async function getUserById(id: number): Promise<User | null> {
-  const [user] = await db
-    .select({
-      id: users.id,
-      email: users.email,
-      name: users.name,
-      isVerified: users.isVerified,
-      createdAt: users.createdAt,
-    })
-    .from(users)
-    .where(eq(users.id, id))
-    .limit(1);
+  console.log('🔍 [AUTH] getUserById called with id:', id);
+  
+  try {
+    const [user] = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        isVerified: users.isVerified,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
 
-  return user || null;
+    console.log('🔍 [AUTH] User query result:', !!user);
+    return user || null;
+  } catch (error) {
+    console.error('❌ [AUTH] getUserById error:', error);
+    throw error;
+  }
 }
 
 export async function getUserByEmail(email: string): Promise<User | null> {

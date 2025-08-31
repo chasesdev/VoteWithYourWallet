@@ -12,7 +12,7 @@ interface LegalFooterProps {
 
 export default function LegalFooter({ 
   style, 
-  textColor = Colors.text.secondary, 
+  textColor = Colors.gray[600], 
   linkColor = Colors.primary[600],
   compact = false 
 }: LegalFooterProps) {
@@ -82,18 +82,18 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing[2],
   },
   text: {
-    fontSize: Typography.sizes.sm,
+    fontSize: Typography.fontSize.sm,
     textAlign: 'center',
     lineHeight: 18,
     marginBottom: Spacing[2],
   },
   link: {
-    fontSize: Typography.sizes.sm,
-    fontWeight: Typography.weights.medium,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
     textDecorationLine: 'underline',
   },
   copyright: {
-    fontSize: Typography.sizes.xs,
+    fontSize: Typography.fontSize.xs,
     textAlign: 'center',
     opacity: 0.7,
   },
@@ -102,12 +102,12 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing[1],
   },
   compactLinkText: {
-    fontSize: Typography.sizes.sm,
-    fontWeight: Typography.weights.medium,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
     textDecorationLine: 'underline',
   },
   compactSeparator: {
-    fontSize: Typography.sizes.sm,
+    fontSize: Typography.fontSize.sm,
     marginHorizontal: Spacing[1],
   },
 });

@@ -1,5 +1,15 @@
 import { sqliteTable, integer, text, real, unique } from 'drizzle-orm/sqlite-core';
 
+export const users = sqliteTable('users', {
+  id: integer('id').primaryKey(),
+  email: text('email').notNull().unique(),
+  password: text('password').notNull(),
+  name: text('name'),
+  isVerified: integer('is_verified', { mode: 'boolean' }).default(false).notNull(),
+  verificationToken: text('verification_token'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+});
+
 export const businesses = sqliteTable('businesses', {
   id: integer('id').primaryKey(),
   name: text('name').notNull(),
@@ -65,9 +75,17 @@ export const businessMedia = sqliteTable('business_media', {
   businessId: integer('business_id').notNull().references(() => businesses.id),
   type: text('type').notNull(), // 'logo', 'photo', 'cover'
   url: text('url').notNull(),
+  originalUrl: text('original_url'),
+  width: integer('width'),
+  height: integer('height'),
+  format: text('format'),
+  size: integer('size'),
   caption: text('caption'),
   altText: text('alt_text'),
   source: text('source'), // Source of the image
+  license: text('license'),
+  attribution: text('attribution'),
+  isPrimary: integer('is_primary', { mode: 'boolean' }).default(false).notNull(),
   isActive: integer('is_active', { mode: 'boolean' }).default(true).notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });
@@ -82,13 +100,6 @@ export const businessReviews = sqliteTable('business_reviews', {
   isActive: integer('is_active', { mode: 'boolean' }).default(true).notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
-});
-
-export const users = sqliteTable('users', {
-  id: integer('id').primaryKey(),
-  email: text('email').notNull().unique(),
-  name: text('name'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });
 
 export const sessions = sqliteTable('sessions', {

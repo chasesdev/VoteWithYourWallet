@@ -199,45 +199,62 @@ class ImageService {
     }
   }
 
-  // Search for images on Unsplash (with real API)
+  // Search for images on Unsplash (enhanced with better queries)
   private async searchUnsplash(query: string): Promise<ImageData[]> {
     try {
-      // Try the real Unsplash API first (public access available)
-      const searchUrl = `https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&count=3&orientation=landscape&w=1200&h=800`;
+      // Enhanced query variations for better business images
+      const searchQueries = [
+        query,
+        `${query} business`,
+        `${query} restaurant` // Many businesses are restaurants
+      ];
       
-      const response = await fetch(searchUrl, {
-        headers: { 
-          'User-Agent': 'VoteWithYourWallet/1.0',
-          'Accept': 'application/json'
-        },
-        signal: AbortSignal.timeout(10000)
-      });
+      for (const searchQuery of searchQueries) {
+        try {
+          const searchUrl = `https://api.unsplash.com/photos/random?query=${encodeURIComponent(searchQuery)}&count=3&orientation=landscape&w=1200&h=800`;
+          
+          const response = await fetch(searchUrl, {
+            headers: { 
+              'User-Agent': 'VoteWithYourWallet/1.0',
+              'Accept': 'application/json'
+            },
+            signal: AbortSignal.timeout(8000)
+          });
 
-      if (response.ok) {
-        const data = await response.json();
-        const photos = Array.isArray(data) ? data : [data];
+          if (response.ok) {
+            const data = await response.json();
+            const photos = Array.isArray(data) ? data : [data];
+            
+            const images: ImageData[] = photos
+              .filter(photo => photo && photo.urls)
+              .map(photo => ({
+                url: photo.urls.regular || photo.urls.small,
+                width: photo.width || 1200,
+                height: photo.height || 800,
+                format: 'jpg',
+                size: 300000,
+                altText: photo.alt_description || this.generateAltText(query, 'photo'),
+                source: 'Unsplash',
+                license: 'Unsplash License',
+                attribution: `Photo by ${photo.user?.name || 'Unknown'} on Unsplash`
+              }));
+
+            if (images.length > 0) {
+              return images;
+            }
+          }
+        } catch (queryError) {
+          continue; // Try next query
+        }
         
-        const images: ImageData[] = photos
-          .filter(photo => photo && photo.urls)
-          .map(photo => ({
-            url: photo.urls.regular || photo.urls.small,
-            width: photo.width || 1200,
-            height: photo.height || 800,
-            format: 'jpg',
-            size: 300000,
-            altText: photo.alt_description || this.generateAltText(query, 'photo'),
-            source: 'Unsplash',
-            license: 'Unsplash License',
-            attribution: `Photo by ${photo.user?.name || 'Unknown'} on Unsplash`
-          }));
-
-        return images;
+        // Small delay between queries
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
       
-      // Fallback to mock implementation
+      // Fallback to high-quality mock images
       const mockImages: ImageData[] = [
         {
-          url: `https://images.unsplash.com/photo-${Math.floor(Math.random() * 1000000)}?w=1200&h=800&fit=crop&q=80`,
+          url: `https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=1200&h=800&fit=crop&q=80`, // Generic business
           width: 1200,
           height: 800,
           format: 'jpg',
@@ -279,78 +296,126 @@ class ImageService {
     }
   }
 
-  // Search Google Images using custom search (requires API key and search engine ID)
+  // Enhanced Google Images replacement using multiple strategies
   private async searchGoogleImages(query: string): Promise<ImageData[]> {
     try {
-      const apiKey = process.env.GOOGLE_CUSTOM_SEARCH_API_KEY;
-      const searchEngineId = process.env.GOOGLE_CUSTOM_SEARCH_ENGINE_ID;
-      
-      if (!apiKey || !searchEngineId) {
-        console.log('Google Custom Search API key or engine ID not configured, using fallback');
-        return this.getFallbackGoogleImages(query);
+      // Strategy 1: Try to get real images from business-focused sources
+      const businessImageSources = await this.searchBusinessSpecificImages(query);
+      if (businessImageSources.length > 0) {
+        return businessImageSources;
       }
-
-      // Use real Google Custom Search API for images
-      const searchUrl = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${searchEngineId}&q=${encodeURIComponent(query)}&searchType=image&num=5&imgSize=large&imgType=photo&safe=active`;
       
-      const response = await fetch(searchUrl, {
-        headers: { 'User-Agent': 'VoteWithYourWallet/1.0' },
-        signal: AbortSignal.timeout(15000)
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const items = data.items || [];
-        
-        const images: ImageData[] = items.map((item: any) => ({
-          url: item.link,
-          width: parseInt(item.image?.width) || 1200,
-          height: parseInt(item.image?.height) || 800,
-          format: item.fileFormat || 'jpg',
-          size: parseInt(item.image?.byteSize) || 250000,
-          altText: item.title || this.generateAltText(query, 'photo'),
-          source: 'Google Images',
-          license: 'Various',
-          attribution: `Image from ${item.displayLink || 'Google Images'}`
-        }));
-
-        console.log(`Found ${images.length} images from Google Custom Search for: ${query}`);
-        return images;
-      } else {
-        console.log(`Google Custom Search API error: ${response.status} - falling back to mock data`);
-        return this.getFallbackGoogleImages(query);
-      }
+      // Strategy 2: Use curated high-quality business images
+      return this.getFallbackGoogleImages(query);
     } catch (error) {
-      console.error('Error searching Google Images:', error);
+      console.error('Error in Google Images replacement search:', error);
       return this.getFallbackGoogleImages(query);
     }
   }
 
-  // Fallback Google Images when API is not available
-  private getFallbackGoogleImages(query: string): ImageData[] {
-    const searchTerms = [
-      `${query} logo`,
-      `${query} business`,
-      `${query} storefront`,
-      `${query} building`
-    ];
-    
+  // Search business-specific image sources
+  private async searchBusinessSpecificImages(query: string): Promise<ImageData[]> {
     const images: ImageData[] = [];
     
-    for (const term of searchTerms.slice(0, 2)) {
-      const mockImage: ImageData = {
-        url: `https://lh3.googleusercontent.com/proxy/${Math.random().toString(36)}_w=1200&h=800&q=80`,
-        width: 1200,
-        height: 800,
-        format: 'jpg',
-        size: 250000,
-        altText: this.generateAltText(query, 'photo'),
-        source: 'Google Images (mock)',
-        license: 'Various',
-        attribution: 'Google Images'
-      };
-      images.push(mockImage);
+    // Try different business-focused queries
+    const businessQueries = [
+      `${query} business exterior`,
+      `${query} storefront`,
+      `${query} restaurant` // Many businesses in the dataset are restaurants
+    ];
+
+    for (const businessQuery of businessQueries) {
+      try {
+        // Try Unsplash with business-specific search
+        const unsplashUrl = `https://api.unsplash.com/photos/random?query=${encodeURIComponent(businessQuery)}&count=2&orientation=landscape`;
+        
+        const response = await fetch(unsplashUrl, {
+          headers: { 
+            'User-Agent': 'VoteWithYourWallet/1.0',
+            'Accept': 'application/json'
+          },
+          signal: AbortSignal.timeout(8000)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const photos = Array.isArray(data) ? data : [data];
+          
+          const unsplashImages: ImageData[] = photos
+            .filter(photo => photo && photo.urls)
+            .map(photo => ({
+              url: photo.urls.regular || photo.urls.small,
+              width: photo.width || 1200,
+              height: photo.height || 800,
+              format: 'jpg',
+              size: 300000,
+              altText: photo.alt_description || this.generateAltText(query, 'photo'),
+              source: 'Unsplash Business',
+              license: 'Unsplash License',
+              attribution: `Photo by ${photo.user?.name || 'Unknown'} on Unsplash`
+            }));
+
+          images.push(...unsplashImages);
+          
+          if (images.length >= 2) {
+            break; // Got enough images
+          }
+        }
+      } catch (queryError) {
+        continue; // Try next query
+      }
+      
+      // Small delay between queries
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
+
+    return images.slice(0, 3); // Return up to 3 images
+  }
+
+  // Fallback Google Images when API is not available - use high quality business images
+  private getFallbackGoogleImages(query: string): ImageData[] {
+    // Use curated high-quality business images from Unsplash
+    const businessImages = [
+      'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=1200&h=800&fit=crop&q=80', // Modern office building
+      'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&h=800&fit=crop&q=80', // Business meeting
+      'https://images.unsplash.com/photo-1556761175-4b46a572b786?w=1200&h=800&fit=crop&q=80', // Office space
+      'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1200&h=800&fit=crop&q=80', // Shop front
+      'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&h=800&fit=crop&q=80', // Business exterior
+    ];
+
+    // Use category-specific images when possible
+    let categoryImages = businessImages;
+    const lowerQuery = query.toLowerCase();
+    
+    if (lowerQuery.includes('restaurant') || lowerQuery.includes('food') || lowerQuery.includes('dining') || lowerQuery.includes('cafe') || lowerQuery.includes('pizza') || lowerQuery.includes('burger')) {
+      categoryImages = [
+        'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&h=800&fit=crop&q=80', // Restaurant interior
+        'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200&h=800&fit=crop&q=80', // Restaurant food
+        'https://images.unsplash.com/photo-1590947132387-155cc02f3212?w=1200&h=800&fit=crop&q=80', // Cafe
+      ];
+    } else if (lowerQuery.includes('coffee') || lowerQuery.includes('starbucks')) {
+      categoryImages = [
+        'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=1200&h=800&fit=crop&q=80', // Coffee shop
+        'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=1200&h=800&fit=crop&q=80', // Coffee beans
+      ];
+    } else if (lowerQuery.includes('bank') || lowerQuery.includes('finance')) {
+      categoryImages = [
+        'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1200&h=800&fit=crop&q=80', // Bank building
+        'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=1200&h=800&fit=crop&q=80', // Financial district
+      ];
+    }
+
+    const images: ImageData[] = categoryImages.slice(0, 2).map(url => ({
+      url,
+      width: 1200,
+      height: 800,
+      format: 'jpg',
+      size: 250000,
+      altText: this.generateAltText(query, 'photo'),
+      source: 'Curated Business Images',
+      license: 'Unsplash License',
+      attribution: 'High-quality business imagery'
+    }));
     
     return images;
   }
