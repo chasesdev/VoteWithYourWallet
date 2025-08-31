@@ -282,38 +282,77 @@ class ImageService {
   // Search Google Images using custom search (requires API key and search engine ID)
   private async searchGoogleImages(query: string): Promise<ImageData[]> {
     try {
-      // For now, return structured URLs that would work with Google Images
-      // In production, use Google Custom Search API with GOOGLE_IMAGES_API_KEY
-      const searchTerms = [
-        `${query} logo`,
-        `${query} business`,
-        `${query} storefront`,
-        `${query} building`
-      ];
+      const apiKey = process.env.GOOGLE_CUSTOM_SEARCH_API_KEY;
+      const searchEngineId = process.env.GOOGLE_CUSTOM_SEARCH_ENGINE_ID;
       
-      const images: ImageData[] = [];
+      if (!apiKey || !searchEngineId) {
+        console.log('Google Custom Search API key or engine ID not configured, using fallback');
+        return this.getFallbackGoogleImages(query);
+      }
+
+      // Use real Google Custom Search API for images
+      const searchUrl = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${searchEngineId}&q=${encodeURIComponent(query)}&searchType=image&num=5&imgSize=large&imgType=photo&safe=active`;
       
-      for (const term of searchTerms.slice(0, 2)) {
-        // Mock Google Images results with realistic URLs
-        const mockImage: ImageData = {
-          url: `https://lh3.googleusercontent.com/proxy/${Math.random().toString(36)}_w=1200&h=800&q=80`,
-          width: 1200,
-          height: 800,
-          format: 'jpg',
-          size: 250000,
-          altText: this.generateAltText(query, 'photo'),
+      const response = await fetch(searchUrl, {
+        headers: { 'User-Agent': 'VoteWithYourWallet/1.0' },
+        signal: AbortSignal.timeout(15000)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const items = data.items || [];
+        
+        const images: ImageData[] = items.map((item: any) => ({
+          url: item.link,
+          width: parseInt(item.image?.width) || 1200,
+          height: parseInt(item.image?.height) || 800,
+          format: item.fileFormat || 'jpg',
+          size: parseInt(item.image?.byteSize) || 250000,
+          altText: item.title || this.generateAltText(query, 'photo'),
           source: 'Google Images',
           license: 'Various',
-          attribution: 'Google Images'
-        };
-        images.push(mockImage);
+          attribution: `Image from ${item.displayLink || 'Google Images'}`
+        }));
+
+        console.log(`Found ${images.length} images from Google Custom Search for: ${query}`);
+        return images;
+      } else {
+        console.log(`Google Custom Search API error: ${response.status} - falling back to mock data`);
+        return this.getFallbackGoogleImages(query);
       }
-      
-      return images;
     } catch (error) {
       console.error('Error searching Google Images:', error);
-      return [];
+      return this.getFallbackGoogleImages(query);
     }
+  }
+
+  // Fallback Google Images when API is not available
+  private getFallbackGoogleImages(query: string): ImageData[] {
+    const searchTerms = [
+      `${query} logo`,
+      `${query} business`,
+      `${query} storefront`,
+      `${query} building`
+    ];
+    
+    const images: ImageData[] = [];
+    
+    for (const term of searchTerms.slice(0, 2)) {
+      const mockImage: ImageData = {
+        url: `https://lh3.googleusercontent.com/proxy/${Math.random().toString(36)}_w=1200&h=800&q=80`,
+        width: 1200,
+        height: 800,
+        format: 'jpg',
+        size: 250000,
+        altText: this.generateAltText(query, 'photo'),
+        source: 'Google Images (mock)',
+        license: 'Various',
+        attribution: 'Google Images'
+      };
+      images.push(mockImage);
+    }
+    
+    return images;
   }
 
   // Search Bing Images API
