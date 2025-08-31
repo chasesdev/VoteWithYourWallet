@@ -8,6 +8,7 @@ import BusinessCard from '../components/BusinessCard';
 import BusinessMapUnified from '../components/BusinessMapUnified';
 import SearchBar from '../components/SearchBar';
 import FilterSection from '../components/FilterSection';
+import BuildInfo from '../components/BuildInfo';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Card from '../components/ui/Card';
@@ -619,6 +620,9 @@ export default function HomeScreen() {
           />
         </View>
       )}
+
+      {/* Build Info at bottom */}
+      <BuildInfo showDetails={true} style={{ marginTop: Spacing[4] }} />
     </ScrollView>
   );
 }

@@ -8,6 +8,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "jest --watchAll",
+    "build:increment": "node scripts/increment-build.js",
+    "prebuild": "npm run build:increment",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "setup:data-sources": "node scripts/simple-data-setup.js",

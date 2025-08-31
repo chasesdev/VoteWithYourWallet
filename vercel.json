@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx expo export --platform web && cp dist/server/index.html dist/ && cp -r dist/client/_expo dist/_expo && cp -r dist/client/assets dist/assets && cp dist/client/favicon.ico dist/",
+  "buildCommand": "npm run build:increment && npx expo export --platform web && cp dist/server/index.html dist/ && cp -r dist/client/_expo dist/_expo && cp -r dist/client/assets dist/assets && cp dist/client/favicon.ico dist/",
   "outputDirectory": "dist",
   "rewrites": [
     { "source": "/_expo/(.*)", "destination": "/_expo/$1" },
