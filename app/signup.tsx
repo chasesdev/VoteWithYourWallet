@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useAuth } from '../contexts/AuthContext';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Card from '../components/ui/Card';
@@ -27,6 +28,7 @@ interface FormErrors {
 export default function SignupScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { signup } = useAuth();
   const redirect = params.redirect as string || '/';
   
   const [form, setForm] = useState<SignupForm>({
@@ -84,40 +86,31 @@ export default function SignupScreen() {
     setErrors({});
 
     try {
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: form.name.trim(),
-          email: form.email.toLowerCase().trim(),
-          password: form.password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setErrors({ general: data.error || 'Signup failed' });
-        return;
-      }
-
-      Alert.alert(
-        'Account Created!', 
-        'Welcome to VoteWithYourWallet! You can now personalize your business recommendations.',
-        [
-          {
-            text: 'Get Started',
-            onPress: () => {
-              // Navigate to political alignment or redirect URL
-              const nextUrl = redirect === '/' ? '/political-alignment' : redirect;
-              router.replace(nextUrl as any);
-            },
-          },
-        ]
+      const success = await signup(
+        form.email.toLowerCase().trim(),
+        form.password,
+        form.name.trim()
       );
 
+      if (success) {
+        Alert.alert(
+          'Account Created!', 
+          'Welcome to VoteWithYourWallet! You are now signed in and can personalize your business recommendations.',
+          [
+            {
+              text: 'Get Started',
+              onPress: () => {
+                // Navigate to political alignment or redirect URL
+                const nextUrl = redirect === '/' ? '/political-alignment' : redirect;
+                router.replace(nextUrl as any);
+              },
+            },
+          ]
+        );
+      } else {
+        // Error handling is done in the AuthContext signup function
+        setErrors({ general: 'Signup failed. Please try again.' });
+      }
     } catch (error) {
       console.error('Signup error:', error);
       setErrors({ general: 'Network error. Please try again.' });
