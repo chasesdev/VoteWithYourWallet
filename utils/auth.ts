@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import * as bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { db } from '../db/connection';
+import { getDB } from '../db/connection';
 import { users, sessions } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
 
@@ -65,6 +65,7 @@ export function verifyJWT(token: string): any {
 
 // Session management
 export async function createSession(userId: number): Promise<string> {
+  const db = getDB();
   const sessionId = generateSessionId();
   const expiresAt = new Date(Date.now() + SESSION_DURATION);
 
@@ -79,6 +80,7 @@ export async function createSession(userId: number): Promise<string> {
 
 export async function getSession(sessionId: string): Promise<SessionData | null> {
   console.log('🔍 [AUTH] getSession called with sessionId:', sessionId);
+  const db = getDB();
   console.log('🔍 [AUTH] Database connection available:', !!db);
   
   try {
@@ -118,15 +120,18 @@ export async function getSession(sessionId: string): Promise<SessionData | null>
 }
 
 export async function deleteSession(sessionId: string): Promise<void> {
+  const db = getDB();
   await db.delete(sessions).where(eq(sessions.id, sessionId));
 }
 
 export async function deleteUserSessions(userId: number): Promise<void> {
+  const db = getDB();
   await db.delete(sessions).where(eq(sessions.userId, userId));
 }
 
 // User management
 export async function createUser(email: string, password: string, name?: string): Promise<User> {
+  const db = getDB();
   // Check if user already exists
   const [existingUser] = await db
     .select()
@@ -166,6 +171,7 @@ export async function createUser(email: string, password: string, name?: string)
 }
 
 export async function authenticateUser(email: string, password: string): Promise<User> {
+  const db = getDB();
   const [user] = await db
     .select()
     .from(users)
@@ -192,6 +198,7 @@ export async function authenticateUser(email: string, password: string): Promise
 
 export async function getUserById(id: number): Promise<User | null> {
   console.log('🔍 [AUTH] getUserById called with id:', id);
+  const db = getDB();
   
   try {
     const [user] = await db
@@ -215,6 +222,7 @@ export async function getUserById(id: number): Promise<User | null> {
 }
 
 export async function getUserByEmail(email: string): Promise<User | null> {
+  const db = getDB();
   const [user] = await db
     .select({
       id: users.id,
