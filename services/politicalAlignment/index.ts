@@ -565,10 +565,11 @@ class PoliticalAlignmentService {
 
   // Get user's personal political alignment
   async getUserPersonalAlignment(userId: number): Promise<PoliticalAlignment | null> {
-    if (!this.db) return null;
+    const db = getDB(); // Get fresh DB connection
+    if (!db) return null;
 
     try {
-      const result = await this.db
+      const result = await db
         .select()
         .from(userAlignments)
         .where(eq(userAlignments.userId, userId))
@@ -592,73 +593,20 @@ class PoliticalAlignmentService {
 
   // Save user's personal political alignment
   async saveUserPersonalAlignment(userId: number, alignment: PoliticalAlignment): Promise<boolean> {
-    if (!this.db) return false;
+    const db = getDB(); // Get fresh DB connection
+    if (!db) return false;
 
     try {
-      // Check if user exists, create if needed
-      let userExists = false;
-      try {
-        const existingUser = await this.db.select().from(users).where(eq(users.id, userId)).limit(1);
-        userExists = existingUser.length > 0;
-        
-        // If user doesn't exist, create one
-        if (!userExists) {
-          // Check total user count to decide on approach
-          const totalUsers = await this.db.select({ count: sql`count(*)` }).from(users);
-          
-          if (totalUsers[0].count === 0 || userId === 999) {
-            // Database is empty or this is a test - create a user
-            try {
-              // Insert user with minimal required fields (skip fields that might not exist in DB)
-              try {
-                await this.db.insert(users).values({
-                  email: `user${userId}@example.com`,
-                  name: userId === 999 ? 'Test User' : `User ${userId}`
-                });
-              } catch (e1: any) {
-                // If that fails, try with just email
-                if (e1.message.includes('password')) {
-                  console.log('⚠️ Database requires password field, adding minimal password');
-                  await this.db.insert(users).values({
-                    email: `user${userId}@example.com`,
-                    password: 'temp_password_hash',
-                    name: userId === 999 ? 'Test User' : `User ${userId}`
-                  });
-                } else {
-                  throw e1;
-                }
-              }
-              
-              console.log(`✅ Created user ${userId} for alignment storage`);
-              userExists = true;
-            } catch (insertError: any) {
-              console.log('❌ Could not create user:', insertError.message);
-              // Try to find any existing user to use
-              const anyUser = await this.db.select().from(users).limit(1);
-              if (anyUser.length > 0) {
-                userId = anyUser[0].id;
-                console.log(`📋 Using existing user ID ${userId} instead`);
-                userExists = true;
-              }
-            }
-          } else {
-            console.log(`❌ User ${userId} does not exist and database has existing users`);
-            return false;
-          }
-        }
-      } catch (userCheckError: any) {
-        console.log('⚠️ Error checking user table:', userCheckError.message);
-        return false;
-      }
-      
-      if (!userExists) {
-        console.log('❌ No valid user found for alignment save');
+      // Check if user exists - if not, we'll skip creating and just return false
+      const existingUser = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (existingUser.length === 0) {
+        console.log(`⚠️ User ${userId} does not exist, cannot save alignment`);
         return false;
       }
 
       // Try to insert alignment data
       try {
-        await this.db.insert(userAlignments).values({
+        await db.insert(userAlignments).values({
           userId,
           liberal: alignment.liberal,
           conservative: alignment.conservative,
@@ -670,7 +618,7 @@ class PoliticalAlignmentService {
       } catch (error: any) {
         // If it's a unique constraint violation, update instead
         if (error.message && error.message.includes('UNIQUE constraint failed')) {
-          await this.db.update(userAlignments)
+          await db.update(userAlignments)
             .set({
               liberal: alignment.liberal,
               conservative: alignment.conservative,
