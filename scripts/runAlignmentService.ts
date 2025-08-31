@@ -7,7 +7,7 @@
  */
 
 import { config } from 'dotenv';
-import { politicalAlignmentService } from '../services/politicalAlignmentService';
+import { politicalAlignmentService } from '../services/politicalAlignment';
 
 // Load environment variables
 config();

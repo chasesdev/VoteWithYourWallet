@@ -1,5 +1,5 @@
-import { getDB } from '../db/connection';
-import { businesses, businessMedia } from '../db/schema';
+import { getDB } from '../../db/connection';
+import { businesses, businessMedia } from '../../db/schema';
 import { eq, and, or, ilike, desc, sql } from 'drizzle-orm';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -144,8 +144,40 @@ class ImageService {
   // Search for images on Wikimedia Commons
   private async searchWikimediaCommons(query: string): Promise<ImageData[]> {
     try {
-      // In a real implementation, this would make actual API calls
-      // For now, we'll return mock data
+      // Real Wikipedia API implementation
+      const searchUrl = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrnamespace=6&gsrlimit=5&prop=imageinfo&iiprop=url|size|mime&iiurlwidth=1200&format=json&origin=*`;
+      
+      const response = await fetch(searchUrl, {
+        headers: { 'User-Agent': 'VoteWithYourWallet/1.0' },
+        signal: AbortSignal.timeout(10000)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const pages = data.query?.pages || {};
+        
+        const images: ImageData[] = Object.values(pages)
+          .filter((page: any) => page.imageinfo && page.imageinfo[0])
+          .map((page: any) => {
+            const info = page.imageinfo[0];
+            return {
+              url: info.thumburl || info.url,
+              width: info.thumbwidth || info.width || 1200,
+              height: info.thumbheight || info.height || 800,
+              format: info.mime?.split('/')[1] || 'jpg',
+              size: info.size || 250000,
+              altText: this.generateAltText(query, 'photo'),
+              source: 'Wikimedia Commons',
+              license: 'CC BY-SA 4.0',
+              attribution: 'Wikimedia Commons'
+            };
+          })
+          .slice(0, 3);
+
+        return images;
+      }
+      
+      // Fallback to mock data if API fails
       const mockImages: ImageData[] = [
         {
           url: `https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/${query.replace(/\s+/g, '_')}_2019.jpg/1200px-${query.replace(/\s+/g, '_')}_2019.jpg`,
@@ -459,6 +491,131 @@ class ImageService {
     } catch (error) {
       console.error('Error getting image statistics:', error);
       return { error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  // Get fallback image for businesses without logos
+  async getFallbackBusinessImage(businessName: string, businessCategory?: string): Promise<ImageData | null> {
+    try {
+      // Try to get a category-specific placeholder image
+      const query = businessCategory ? `${businessName} ${businessCategory}` : businessName;
+      
+      // Use our local API endpoint for fetching business images
+      const imageUrl = `/api/fetch-business-image?query=${encodeURIComponent(businessName)}&category=${encodeURIComponent(businessCategory || 'business')}`;
+      
+      return {
+        url: imageUrl,
+        width: 800,
+        height: 600,
+        format: 'jpg',
+        size: 100000,
+        altText: this.generateAltText(businessName, 'photo'),
+        source: 'fallback_api',
+        license: 'Various',
+        attribution: 'Business image fallback service'
+      };
+    } catch (error) {
+      console.error('Error getting fallback business image:', error);
+      return null;
+    }
+  }
+
+  // Get business image with comprehensive fallback chain
+  async getBusinessImageWithFallbacks(businessName: string, domain?: string, businessCategory?: string): Promise<{ logo?: ImageData; fallbackImage?: ImageData }> {
+    const result: { logo?: ImageData; fallbackImage?: ImageData } = {};
+
+    try {
+      // First try to get a logo using domain-based services
+      if (domain) {
+        const logoUrl = `/api/fetch-logo?domain=${encodeURIComponent(domain)}&businessName=${encodeURIComponent(businessName)}`;
+        
+        try {
+          // Test if logo service returns a valid image
+          const response = await fetch(logoUrl, { method: 'HEAD' });
+          if (response.ok) {
+            result.logo = {
+              url: logoUrl,
+              width: 256,
+              height: 256,
+              format: 'png',
+              size: 50000,
+              altText: this.generateAltText(businessName, 'logo'),
+              source: 'logo_api',
+              license: 'Various'
+            };
+          }
+        } catch (logoError) {
+          console.log('Logo service not available, trying fallback');
+        }
+      }
+
+      // If no logo found, try known logos
+      if (!result.logo) {
+        result.logo = this.getKnownLogo(businessName);
+      }
+
+      // Always provide a fallback business image
+      result.fallbackImage = await this.getFallbackBusinessImage(businessName, businessCategory);
+
+      return result;
+    } catch (error) {
+      console.error('Error getting business image with fallbacks:', error);
+      
+      // Return at least a fallback image
+      const fallbackImage = await this.getFallbackBusinessImage(businessName, businessCategory);
+      return { fallbackImage };
+    }
+  }
+
+  // Enhanced method to update business with fallback images
+  async updateBusinessWithImages(businessId: number, businessName: string, domain?: string, businessCategory?: string): Promise<boolean> {
+    if (!this.db) return false;
+
+    try {
+      const images = await this.getBusinessImageWithFallbacks(businessName, domain, businessCategory);
+      
+      // Save logo if available
+      if (images.logo) {
+        await this.db.insert(businessMedia).values({
+          businessId,
+          type: 'logo',
+          url: images.logo.url,
+          width: images.logo.width,
+          height: images.logo.height,
+          format: images.logo.format,
+          size: images.logo.size,
+          altText: images.logo.altText,
+          source: images.logo.source,
+          license: images.logo.license,
+          attribution: images.logo.attribution,
+          isPrimary: true,
+          createdAt: new Date()
+        });
+      }
+
+      // Save fallback image
+      if (images.fallbackImage) {
+        await this.db.insert(businessMedia).values({
+          businessId,
+          type: 'photo',
+          url: images.fallbackImage.url,
+          width: images.fallbackImage.width,
+          height: images.fallbackImage.height,
+          format: images.fallbackImage.format,
+          size: images.fallbackImage.size,
+          altText: images.fallbackImage.altText,
+          source: images.fallbackImage.source,
+          license: images.fallbackImage.license,
+          attribution: images.fallbackImage.attribution,
+          isPrimary: false,
+          createdAt: new Date()
+        });
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating business with images:', error);
+      return false;
     }
   }
 

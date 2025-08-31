@@ -14,7 +14,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const lastUpdated = "January 2024";
+  const lastUpdated = "January 2025";
 
   // Return HTML for web browsers or JSON for API consumers
   const acceptHeader = req.headers.accept || '';

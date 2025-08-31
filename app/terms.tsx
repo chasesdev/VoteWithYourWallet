@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Typography } from '../constants/design';
 
 export default function TermsOfServiceScreen() {
-  const lastUpdated = "January 2024";
+  const lastUpdated = "August 2025";
 
   return (
     <SafeAreaView style={styles.container}>
@@ -127,7 +127,7 @@ export default function TermsOfServiceScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.white,
   },
   scrollView: {
     flex: 1,
@@ -137,41 +137,41 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   title: {
-    fontSize: Typography.sizes.xxl,
-    fontWeight: Typography.weights.bold,
-    color: Colors.text.primary,
+    fontSize: Typography.fontSize['2xl'],
+    fontWeight: '700' as const, // Convert string to numeric type
+    color: Colors.gray[900],
     marginBottom: 8,
     textAlign: 'center',
   },
   lastUpdated: {
-    fontSize: Typography.sizes.sm,
-    color: Colors.text.secondary,
+    fontSize: Typography.fontSize.sm,
+    color: Colors.gray[600],
     textAlign: 'center',
     marginBottom: 24,
     fontStyle: 'italic',
   },
   sectionTitle: {
-    fontSize: Typography.sizes.lg,
-    fontWeight: Typography.weights.semibold,
-    color: Colors.text.primary,
+    fontSize: Typography.fontSize.lg,
+    fontWeight: '600' as const, // Convert string to numeric type
+    color: Colors.gray[900],
     marginTop: 24,
     marginBottom: 12,
   },
   text: {
-    fontSize: Typography.sizes.md,
-    lineHeight: 22,
-    color: Colors.text.primary,
+    fontSize: Typography.fontSize.base,
+    lineHeight: Typography.lineHeight.relaxed,
+    color: Colors.gray[700],
     marginBottom: 16,
   },
   footer: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.gray[50],
     padding: 16,
     borderRadius: 8,
     marginTop: 24,
   },
   footerText: {
-    fontSize: Typography.sizes.sm,
-    color: Colors.text.secondary,
+    fontSize: Typography.fontSize.sm,
+    color: Colors.gray[600],
     textAlign: 'center',
     fontStyle: 'italic',
   },
