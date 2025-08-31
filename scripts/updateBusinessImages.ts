@@ -51,7 +51,7 @@ async function updateBusinessImages() {
           eq(businesses.logoUrl, '')
         )
       )
-      .limit(50); // Process in batches
+      .limit(200); // Process in larger batches for better coverage
 
     console.log(`Found ${businessesWithoutImages.length} businesses without complete image data\n`);
 
